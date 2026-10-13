@@ -1,0 +1,140 @@
+schema: '2.0'
+stages:
+  data_ingestion:
+    cmd: python -c "from networksecurity.components.data_ingestion import 
+      DataIngestion; from networksecurity.entity.config_entity import 
+      DataIngestionConfig, TrainingPipelineConfig; config = 
+      TrainingPipelineConfig(); di = DataIngestion(DataIngestionConfig(config));
+      print(di.initiate_data_ingestion())"
+    deps:
+    - path: Network_Data/phisingData.csv
+      hash: md5
+      md5: 1977d59710eb380c0db1836eac2d007b
+      size: 789209
+    - path: networksecurity/components/data_ingestion.py
+      hash: md5
+      md5: 8506f5e78b93bf628d7951f323ad86d6
+      size: 4893
+    - path: networksecurity/constants/training_pipeline/__init__.py
+      hash: md5
+      md5: 0fc91e28208213f88e7b8f9967e196bd
+      size: 2305
+    - path: networksecurity/entity/config_entity.py
+      hash: md5
+      md5: b05fb0e993105f8fd5e8dfa3d9a11f5b
+      size: 4858
+    outs:
+    - path: Artifacts
+      hash: md5
+      md5: 1fe22f0a7fcd107ea60e4b055dc5af00.dir
+      size: 54866206
+      nfiles: 37
+  data_validation:
+    cmd: python scripts/run_validation.py
+    deps:
+    - path: Artifacts
+      hash: md5
+      md5: 8dda1649a225c403d99b986cf397d642.dir
+      size: 6407835
+      nfiles: 16
+    - path: data_schema/schema.yaml
+      hash: md5
+      md5: 70a1974c2241fc92df6a2ab4b860c31f
+      size: 1351
+    - path: networksecurity/components/data_validation.py
+      hash: md5
+      md5: fd9be1c6dde59b2d5ff853d206f3406c
+      size: 4987
+    - path: networksecurity/constants/training_pipeline/__init__.py
+      hash: md5
+      md5: 0fc91e28208213f88e7b8f9967e196bd
+      size: 2305
+    - path: networksecurity/entity/artifact_entity.py
+      hash: md5
+      md5: 00b88caefba393ce250895ad299933cd
+      size: 1015
+    - path: networksecurity/entity/config_entity.py
+      hash: md5
+      md5: b05fb0e993105f8fd5e8dfa3d9a11f5b
+      size: 4858
+    - path: scripts/run_validation.py
+      hash: md5
+      md5: d2a871e9773bec87a0d640c695bdfc1b
+      size: 1361
+  data_transformation:
+    cmd: python scripts/run_transformation.py
+    deps:
+    - path: Artifacts
+      hash: md5
+      md5: e2ad7fb860f4bf95e2d41c39615bcf32.dir
+      size: 11538883
+      nfiles: 19
+    - path: networksecurity/components/data_transformation.py
+      hash: md5
+      md5: ddb9ffe9f8e1b40016c4338b3ccc5e7c
+      size: 4594
+    - path: networksecurity/constants/training_pipeline/__init__.py
+      hash: md5
+      md5: 0fc91e28208213f88e7b8f9967e196bd
+      size: 2305
+    - path: networksecurity/entity/artifact_entity.py
+      hash: md5
+      md5: 00b88caefba393ce250895ad299933cd
+      size: 1015
+    - path: networksecurity/entity/config_entity.py
+      hash: md5
+      md5: b05fb0e993105f8fd5e8dfa3d9a11f5b
+      size: 4858
+    - path: scripts/run_transformation.py
+      hash: md5
+      md5: 4fcd4334eca0c1759c88bf917c86fd7c
+      size: 1644
+  train:
+    cmd: python scripts/run_training.py
+    deps:
+    - path: Artifacts
+      hash: md5
+      md5: 1e494b5c942b68f05106a41e7c443f48.dir
+      size: 67707813
+      nfiles: 40
+    - path: networksecurity/components/model_trainer.py
+      hash: md5
+      md5: df9730194326a6637632cbc7757671f9
+      size: 13927
+    - path: networksecurity/constants/training_pipeline/__init__.py
+      hash: md5
+      md5: 0fc91e28208213f88e7b8f9967e196bd
+      size: 2305
+    - path: networksecurity/entity/artifact_entity.py
+      hash: md5
+      md5: 00b88caefba393ce250895ad299933cd
+      size: 1015
+    - path: networksecurity/entity/config_entity.py
+      hash: md5
+      md5: b05fb0e993105f8fd5e8dfa3d9a11f5b
+      size: 4858
+    - path: networksecurity/utils/main_utils/utils.py
+      hash: md5
+      md5: 6a6128ed372fc7094af9027b75c0afab
+      size: 3388
+    - path: networksecurity/utils/ml_utils/metric/classification_metric.py
+      hash: md5
+      md5: f909e47f1aff0a6f3bfd5f5d0169ed79
+      size: 807
+    - path: networksecurity/utils/ml_utils/model/estimator.py
+      hash: md5
+      md5: b9defe4c2cc91dde08567b41a4033ffb
+      size: 726
+    - path: scripts/run_training.py
+      hash: md5
+      md5: 3b0401f7a59135703ec7bb924c1774ce
+      size: 1871
+    outs:
+    - path: final_model/model_comparison.csv
+      hash: md5
+      md5: 6c9a3fcb69b0d97e345ecebd54953f03
+      size: 1054
+    - path: final_model/model_comparison.json
+      hash: md5
+      md5: 24ee9a847e43b2487664bc53161d96e0
+      size: 2376

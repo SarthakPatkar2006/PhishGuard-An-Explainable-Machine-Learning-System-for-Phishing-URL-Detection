@@ -49,11 +49,8 @@ stages:
       - networksecurity/constants/training_pipeline/__init__.py
       - scripts/run_training.py
       - Artifacts
-    metrics:
+    outs:
       - final_model/model_comparison.json:
           cache: false
-    plots:
       - final_model/model_comparison.csv:
-          x: modelName
-          y: testF1
           cache: false

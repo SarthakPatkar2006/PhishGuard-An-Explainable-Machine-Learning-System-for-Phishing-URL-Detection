@@ -27,7 +27,10 @@ from networksecurity.utils.ml_utils.model.estimator import NetworkModel
 DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "sarthakpatkar047")
 DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "Network-Security-Phishing-Detection")
 
-dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, mlflow=True)
+try:
+    dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, mlflow=True)
+except Exception as e:
+    logging.warning(f"Could not initialize DagsHub remote tracking: {e}. Falling back to local tracking.")
 
 
 class EncodedTargetClassifier(ClassifierMixin, BaseEstimator):
