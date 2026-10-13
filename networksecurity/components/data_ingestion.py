@@ -27,25 +27,38 @@ class DataIngestion:
         
     def export_collection_as_dataframe(self):
         '''
-        Read Datafrom MongoDb
+        Read Data from MongoDB, with fallback to local DVC-tracked dataset
         '''
         try:
             database_name=self.data_ingestion_config.database_name
             collection_name=self.data_ingestion_config.collection_name
-            if not MONGO_DB_URL:
-                raise ValueError("MongoDB Atlas URI is not configured. Set MONGODB_URL_KEY or MONGO_DB_URL.")
-            mongo_kwargs = {}
-            if MONGO_DB_URL.lower().startswith("mongodb+srv://"):
-                mongo_kwargs["tlsCAFile"] = certifi.where()
-            self.mongo_client=pymongo.MongoClient(MONGO_DB_URL, **mongo_kwargs)
-            collection=self.mongo_client[database_name][collection_name]
+            if MONGO_DB_URL:
+                try:
+                    mongo_kwargs = {"serverSelectionTimeoutMS": 5000}
+                    if MONGO_DB_URL.lower().startswith("mongodb+srv://"):
+                        mongo_kwargs["tlsCAFile"] = certifi.where()
+                    self.mongo_client=pymongo.MongoClient(MONGO_DB_URL, **mongo_kwargs)
+                    collection=self.mongo_client[database_name][collection_name]
 
-            df=pd.DataFrame(list(collection.find()))
-            if "_id" in df.columns.tolist():
-                df=df.drop(columns=["_id"])
+                    df=pd.DataFrame(list(collection.find()))
+                    if not df.empty:
+                        if "_id" in df.columns.tolist():
+                            df=df.drop(columns=["_id"])
+                        df.replace({"na":np.nan},inplace=True)
+                        logging.info("Successfully fetched data from MongoDB.")
+                        return df
+                except Exception as mongo_err:
+                    logging.warning(f"MongoDB connection failed: {mongo_err}. Falling back to local dataset.")
 
-            df.replace({"na":np.nan},inplace=True)
-            return df
+            # Fallback to local DVC tracked data file
+            local_csv_path = os.path.join("Network_Data", "phisingData.csv")
+            if os.path.exists(local_csv_path):
+                logging.info(f"Reading dataset directly from local file: {local_csv_path}")
+                df = pd.read_csv(local_csv_path)
+                df.replace({"na": np.nan}, inplace=True)
+                return df
+            else:
+                raise FileNotFoundError(f"Neither MongoDB nor local file at {local_csv_path} is available.")
         except Exception as e:
             raise NetworkSecurityException(e,sys)
         
