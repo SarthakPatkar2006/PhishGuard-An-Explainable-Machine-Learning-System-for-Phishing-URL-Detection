@@ -1,13 +1,11 @@
 stages:
   data_ingestion:
-    cmd: python -c "
-from networksecurity.components.data_ingestion import DataIngestion;
-from networksecurity.entity.config_entity import DataIngestionConfig, TrainingPipelineConfig;
-config = TrainingPipelineConfig();
-di = DataIngestion(DataIngestionConfig(config));
-artifact = di.initiate_data_ingestion();
-print('Data Ingestion Done:', artifact)
-"
+    cmd: >-
+      python -c "from networksecurity.components.data_ingestion import DataIngestion;
+      from networksecurity.entity.config_entity import DataIngestionConfig, TrainingPipelineConfig;
+      config = TrainingPipelineConfig();
+      di = DataIngestion(DataIngestionConfig(config));
+      print(di.initiate_data_ingestion())"
     deps:
       - networksecurity/components/data_ingestion.py
       - networksecurity/entity/config_entity.py
@@ -19,96 +17,38 @@ print('Data Ingestion Done:', artifact)
           persist: true
 
   data_validation:
-    cmd: python -c "
-import os, glob
-from networksecurity.components.data_validation import DataValidation;
-from networksecurity.entity.config_entity import DataValidationConfig, TrainingPipelineConfig;
-from networksecurity.entity.artifact_entity import DataIngestionArtifact;
-config = TrainingPipelineConfig();
-# find latest train/test files from ingestion
-artifact_dirs = sorted(glob.glob('Artifacts/*/data_ingestion/ingested'), reverse=True);
-ingested_dir = artifact_dirs[0] if artifact_dirs else '';
-train_path = os.path.join(ingested_dir, 'train.csv');
-test_path  = os.path.join(ingested_dir, 'test.csv');
-ingestion_artifact = DataIngestionArtifact(trained_file_path=train_path, test_file_path=test_path);
-val_config = DataValidationConfig(config);
-dv = DataValidation(ingestion_artifact, val_config);
-artifact = dv.initiate_data_validation();
-print('Data Validation Done:', artifact)
-"
+    cmd: python scripts/run_validation.py
     deps:
       - networksecurity/components/data_validation.py
       - networksecurity/entity/config_entity.py
       - networksecurity/entity/artifact_entity.py
       - networksecurity/constants/training_pipeline/__init__.py
       - data_schema/schema.yaml
+      - scripts/run_validation.py
       - Artifacts
 
   data_transformation:
-    cmd: python -c "
-import os, glob
-from networksecurity.components.data_transformation import DataTransformation;
-from networksecurity.entity.config_entity import DataTransformationConfig, TrainingPipelineConfig;
-from networksecurity.entity.artifact_entity import DataValidationArtifact;
-config = TrainingPipelineConfig();
-val_dirs = sorted(glob.glob('Artifacts/*/data_validation/validated'), reverse=True);
-val_dir = val_dirs[0] if val_dirs else '';
-drift_dirs = sorted(glob.glob('Artifacts/*/data_validation/drift_report/report.yaml'), reverse=True);
-drift_path = drift_dirs[0] if drift_dirs else '';
-val_artifact = DataValidationArtifact(
-    validation_status=True,
-    valid_train_file_path=os.path.join(val_dir,'train.csv'),
-    valid_test_file_path=os.path.join(val_dir,'test.csv'),
-    invalid_train_file_path=None,
-    invalid_test_file_path=None,
-    drift_report_file_path=drift_path
-);
-trans_config = DataTransformationConfig(config);
-dt = DataTransformation(val_artifact, trans_config);
-artifact = dt.initiate_data_transformation();
-print('Data Transformation Done:', artifact)
-"
+    cmd: python scripts/run_transformation.py
     deps:
       - networksecurity/components/data_transformation.py
       - networksecurity/entity/config_entity.py
       - networksecurity/entity/artifact_entity.py
       - networksecurity/constants/training_pipeline/__init__.py
+      - scripts/run_transformation.py
       - Artifacts
 
   train:
-    cmd: python -c "
-import os, glob
-from networksecurity.components.model_trainer import ModelTrainer;
-from networksecurity.entity.config_entity import ModelTrainerConfig, TrainingPipelineConfig;
-from networksecurity.entity.artifact_entity import DataTransformationArtifact;
-config = TrainingPipelineConfig();
-trans_dirs = sorted(glob.glob('Artifacts/*/data_transformation/transformed'), reverse=True);
-trans_dir = trans_dirs[0] if trans_dirs else '';
-obj_dirs  = sorted(glob.glob('Artifacts/*/data_transformation/transformed_object/preprocessing.pkl'), reverse=True);
-obj_path  = obj_dirs[0] if obj_dirs else '';
-trans_artifact = DataTransformationArtifact(
-    transformed_object_file_path=obj_path,
-    transformed_train_file_path=os.path.join(trans_dir,'train.npy'),
-    transformed_test_file_path=os.path.join(trans_dir,'test.npy')
-);
-model_config = ModelTrainerConfig(config);
-mt = ModelTrainer(model_trainer_config=model_config, data_transformation_artifact=trans_artifact);
-artifact = mt.initiate_model_trainer();
-print('Model Training Done:', artifact)
-"
+    cmd: python scripts/run_training.py
     deps:
       - networksecurity/components/model_trainer.py
       - networksecurity/utils/ml_utils/metric/classification_metric.py
       - networksecurity/utils/ml_utils/model/estimator.py
+      - networksecurity/utils/main_utils/utils.py
       - networksecurity/entity/config_entity.py
       - networksecurity/entity/artifact_entity.py
       - networksecurity/constants/training_pipeline/__init__.py
+      - scripts/run_training.py
       - Artifacts
-    outs:
-      - final_model/model_comparison.csv:
-          cache: false
-      - final_model/model_comparison.json:
-          cache: false
     metrics:
       - final_model/model_comparison.json:
           cache: false
