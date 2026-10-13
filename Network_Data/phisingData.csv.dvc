@@ -1,0 +1,5 @@
+outs:
+- md5: 1977d59710eb380c0db1836eac2d007b
+  size: 789209
+  hash: md5
+  path: phisingData.csv

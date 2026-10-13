@@ -7,3 +7,12 @@ Artifacts/
 prediction_output/
 mlflow.db
 valid_data/
+
+# DVC — large files managed by DVC, not Git
+Network_Data/phisingData.csv
+final_model/model.pkl
+final_model/preprocessor.pkl
+
+# DVC internal cache
+.dvc/cache
+.dvc/tmp
