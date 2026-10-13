@@ -1,0 +1,97 @@
+================================================================================
+  NETWORK SECURITY PHISHING DETECTION - DVC & DAGSHUB PRESENTATION GUIDE
+================================================================================
+
+1. EXECUTIVE SUMMARY (30-SECOND ELEVATOR PITCH)
+--------------------------------------------------------------------------------
+"In production Machine Learning, versioning code with Git is only one piece of 
+the puzzle. To make our Phishing Detection model enterprise-ready and fully 
+reproducible, we integrated DVC (Data Version Control) to version our 11,000+ URL 
+dataset and end-to-end pipeline stages without bloating Git. We also connected 
+DagsHub + MLflow as our centralized remote storage and experiment tracking dashboard. 
+Now, any engineer can clone the repository, run `dvc repro`, and reproduce our 
+exact dataset, preprocessing steps, and 97.1% F1-score model."
+
+
+2. FEATURE 1: DATA & PIPELINE VERSIONING WITH DVC
+--------------------------------------------------------------------------------
+A. The Problem It Solves:
+   - Git is not designed to store large datasets or binary model files (.pkl).
+   - Without versioned data, there is no reliable way to track which specific 
+     dataset version produced which model version.
+
+B. What Was Built:
+   1. DVC Data Tracking:
+      - Raw dataset (Network_Data/phisingData.csv) is version-controlled by DVC.
+      - Git only tracks the lightweight pointer file (phisingData.csv.dvc) with MD5 hashes.
+      - Actual data is pushed to DagsHub S3-compatible remote storage via `dvc push`.
+   2. Reproducible Pipeline (dvc.yaml & dvc.lock):
+      - 4-stage Directed Acyclic Graph (DAG):
+        Data Ingestion -> Data Validation -> Data Transformation -> Model Training
+      - Tracks code dependencies (deps) and stage outputs (outs).
+      - Automatically skips unchanged stages to save compute time and resources.
+      - Generates dvc.lock for deterministic reproducibility across environments.
+
+
+3. FEATURE 2: CENTRALIZED EXPERIMENT TRACKING (DAGSHUB + MLFLOW)
+--------------------------------------------------------------------------------
+A. The Problem It Solves:
+   - Local experiment databases (like mlflow.db) cannot be easily shared or viewed.
+   - Difficult to compare candidate models (Random Forest, Logistic Regression, 
+     Decision Trees, XGBoost) and justify production selection.
+
+B. What Was Built:
+   1. Cloud MLflow Integration:
+      - Automatically logs runs to DagsHub's managed MLflow remote tracking server.
+   2. Metrics & Parameters Tracking:
+      - Logged parameters: model names, train/test stage, hyperparameter grids.
+      - Evaluated metrics:
+        * Test F1-Score: 97.13%
+        * Test Precision: 96.73%
+        * Test Recall:    97.53%
+   3. Artifact Logging:
+      - Model files (model.pkl), preprocessors, and comparison matrices 
+        are stored and downloadable from DagsHub.
+
+
+4. LIVE DEMO WALKTHROUGH (SCREEN SHARE SCRIPT)
+--------------------------------------------------------------------------------
+Step 1: Terminal / Code Demo
+   - Command:
+     dvc dag
+   - Talking point:
+     "Here is our complete ML pipeline DAG. DVC maps inputs to outputs across 
+     data ingestion, schema validation, drift detection, KNN imputation, and training."
+   - Show dvc.yaml and dvc.lock:
+     "Notice that Git only tracks lightweight hashes, keeping our repository fast."
+
+Step 2: DagsHub Files & Data Remote
+   - Open: https://dagshub.com/sarthakpatkar047/Network-Security-Phishing-Detection
+   - Click 'Network_Data/' and show 'phisingData.csv':
+     "Notice the DVC badge next to our dataset. It lives on remote storage and is 
+     fully version-linked to Git commits."
+
+Step 3: DagsHub Experiments Dashboard
+   - Open: https://dagshub.com/sarthakpatkar047/Network-Security-Phishing-Detection/experiments
+   - Show Experiment Comparison table:
+     "Here is our live MLflow tracking server. Random Forest was selected as our best 
+     model with 97.1% test F1-score. All runs, parameters, and model artifacts are 
+     persisted here for team auditing and deployment."
+
+
+5. COMMONLY ASKED QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+Q: Why not just store the dataset in GitHub or Google Drive?
+A: GitHub has strict file size limits and repository bloat issues. Google Drive 
+   lacks CLI automation, hash-based commit linking, and pipeline dependency tracking. 
+   DVC links data directly to Git commits.
+
+Q: What happens if raw data changes in production?
+A: We run `dvc add Network_Data/phisingData.csv` followed by `dvc repro`. DVC detects 
+   the updated dataset hash and automatically triggers all downstream stages.
+
+Q: Why DagsHub instead of hosting MLflow manually on AWS EC2?
+A: DagsHub offers zero-maintenance managed MLflow, Git integration, and S3-compatible 
+   DVC storage in one unified platform, eliminating cloud setup overhead.
+
+================================================================================
