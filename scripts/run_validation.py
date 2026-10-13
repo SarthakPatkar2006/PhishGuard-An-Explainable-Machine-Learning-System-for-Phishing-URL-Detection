@@ -6,6 +6,8 @@ import os
 import glob
 import sys
 
+sys.path.append(os.getcwd())
+
 from networksecurity.components.data_validation import DataValidation
 from networksecurity.entity.config_entity import DataValidationConfig, TrainingPipelineConfig
 from networksecurity.entity.artifact_entity import DataIngestionArtifact

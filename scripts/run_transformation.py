@@ -4,6 +4,9 @@ Reads the latest validated data from Artifacts/ and applies KNN imputation.
 """
 import os
 import glob
+import sys
+
+sys.path.append(os.getcwd())
 
 from networksecurity.components.data_transformation import DataTransformation
 from networksecurity.entity.config_entity import DataTransformationConfig, TrainingPipelineConfig

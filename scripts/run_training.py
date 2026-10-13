@@ -5,6 +5,9 @@ Logs all experiments to DagsHub via MLflow.
 """
 import os
 import glob
+import sys
+
+sys.path.append(os.getcwd())
 
 from networksecurity.components.model_trainer import ModelTrainer
 from networksecurity.entity.config_entity import ModelTrainerConfig, TrainingPipelineConfig
