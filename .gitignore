@@ -1,0 +1,9 @@
+venv
+.env
+__pycache__/
+*.py[cod]
+logs/
+Artifacts/
+prediction_output/
+mlflow.db
+valid_data/
