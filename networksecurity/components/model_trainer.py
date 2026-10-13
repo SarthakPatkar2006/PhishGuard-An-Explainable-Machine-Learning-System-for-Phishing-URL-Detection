@@ -24,8 +24,8 @@ from networksecurity.utils.main_utils.utils import load_numpy_array_data, load_o
 from networksecurity.utils.ml_utils.metric.classification_metric import get_classification_score
 from networksecurity.utils.ml_utils.model.estimator import NetworkModel
 
-DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "Sahilpatil009")
-DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "network-security-edi")
+DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "sarthakpatkar047")
+DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "Network-Security-Phishing-Detection")
 
 dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, mlflow=True)
 
