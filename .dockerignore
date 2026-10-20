@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Secrets and environment files
+.env
+*.env
+*.pem
+*.key
+
+# Python artifacts and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# DVC local storage and caches
+.dvc/cache
+.dvc/tmp
+
+# Temporary, logs and build artifacts
+Artifacts/
+logs/
+prediction_output/
+*.log
+.DS_Store
+Thumbs.db
+mlflow.db
+mlruns/
+
+# Node / Frontend development (if building separately)
+frontend/node_modules/
+frontend/dist/
