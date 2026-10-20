@@ -1,6 +1,42 @@
-================================================================================
+================================================================
+
+6. GEMINI INTEGRATION (ANTIGRAVITY)
+--------------------------------------------------------------------------------
+The Antigravity Gemini assistant (also known as **Gemini**) can be used to generate on‑demand explanations for any part of this project—pipeline stages, code snippets, data schemas, or MLflow metrics.
+
+- **How to invoke:** In the terminal or chat UI, type a natural‑language question prefixed with `/explain`. For example:
+  ```
+  /explain how the data validation stage detects drift
+  ```
+  Gemini will return a concise explanation, optionally with code excerpts.
+- **Quick reference commands:**
+  - `/explain <topic>` – General explanation.
+  - `/explain code <filepath>` – Shows and explains the specified source file.
+  - `/explain metrics` – Summarizes the logged MLflow metrics and their meaning.
+- **Benefits:** Eliminates the need to manually dig through docs; you get instant, contextual answers that aid onboarding, presentations, and debugging.
+
+Feel free to ask Gemini any follow‑up questions while presenting the demo to keep the audience engaged.
+================
   NETWORK SECURITY PHISHING DETECTION - DVC & DAGSHUB PRESENTATION GUIDE
-================================================================================
+================================================================
+
+6. GEMINI INTEGRATION (ANTIGRAVITY)
+--------------------------------------------------------------------------------
+The Antigravity Gemini assistant (also known as **Gemini**) can be used to generate on‑demand explanations for any part of this project—pipeline stages, code snippets, data schemas, or MLflow metrics.
+
+- **How to invoke:** In the terminal or chat UI, type a natural‑language question prefixed with `/explain`. For example:
+  ```
+  /explain how the data validation stage detects drift
+  ```
+  Gemini will return a concise explanation, optionally with code excerpts.
+- **Quick reference commands:**
+  - `/explain <topic>` – General explanation.
+  - `/explain code <filepath>` – Shows and explains the specified source file.
+  - `/explain metrics` – Summarizes the logged MLflow metrics and their meaning.
+- **Benefits:** Eliminates the need to manually dig through docs; you get instant, contextual answers that aid onboarding, presentations, and debugging.
+
+Feel free to ask Gemini any follow‑up questions while presenting the demo to keep the audience engaged.
+================
 
 1. EXECUTIVE SUMMARY (30-SECOND ELEVATOR PITCH)
 --------------------------------------------------------------------------------
@@ -94,4 +130,22 @@ Q: Why DagsHub instead of hosting MLflow manually on AWS EC2?
 A: DagsHub offers zero-maintenance managed MLflow, Git integration, and S3-compatible 
    DVC storage in one unified platform, eliminating cloud setup overhead.
 
-================================================================================
+================================================================
+
+6. GEMINI INTEGRATION (ANTIGRAVITY)
+--------------------------------------------------------------------------------
+The Antigravity Gemini assistant (also known as **Gemini**) can be used to generate on‑demand explanations for any part of this project—pipeline stages, code snippets, data schemas, or MLflow metrics.
+
+- **How to invoke:** In the terminal or chat UI, type a natural‑language question prefixed with `/explain`. For example:
+  ```
+  /explain how the data validation stage detects drift
+  ```
+  Gemini will return a concise explanation, optionally with code excerpts.
+- **Quick reference commands:**
+  - `/explain <topic>` – General explanation.
+  - `/explain code <filepath>` – Shows and explains the specified source file.
+  - `/explain metrics` – Summarizes the logged MLflow metrics and their meaning.
+- **Benefits:** Eliminates the need to manually dig through docs; you get instant, contextual answers that aid onboarding, presentations, and debugging.
+
+Feel free to ask Gemini any follow‑up questions while presenting the demo to keep the audience engaged.
+================
