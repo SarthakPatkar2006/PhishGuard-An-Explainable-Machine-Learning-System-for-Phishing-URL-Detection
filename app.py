@@ -100,8 +100,8 @@ SAMPLE_DATA_PATH = BASE_DIR / "Network_Data" / "phisingData.csv"
 DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "Sahilpatil009")
 DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "network-security-edi")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# Configurable Gemini model. Defaults to gemini-1.5-flash which is standard on Google AI Studio.
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
+# Configurable Gemini model. Defaults to gemini-2.5-flash which is active and supported on Google AI Studio.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
 GEMINI_TIMEOUT_SECONDS = bounded_int_from_env(
     "GEMINI_TIMEOUT_SECONDS", default=10, minimum=3, maximum=30
 )
@@ -471,8 +471,11 @@ def explain_prediction_with_gemini_result(
             }
         ],
         "generationConfig": {
-            "maxOutputTokens": 200,
+            "maxOutputTokens": 800,
             "temperature": 0.2,
+            "thinkingConfig": {
+                "thinkingBudget": 0,
+            },
         },
     }
     # Three attempts total; only known transient service/network responses retry.
