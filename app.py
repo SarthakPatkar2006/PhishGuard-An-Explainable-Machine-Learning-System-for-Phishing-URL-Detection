@@ -4,14 +4,15 @@ import json
 import base64
 import hashlib
 import hmac
+import re
 import secrets
 import time
 from functools import lru_cache
+from threading import Lock
 from datetime import datetime, timedelta, timezone
 from html import escape
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
 from urllib.request import Request as UrlRequest, urlopen
 
 import certifi
@@ -26,7 +27,7 @@ from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.logging.logger import logging
 
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 from uvicorn import run as app_run
@@ -43,6 +44,14 @@ BASE_DIR = Path(__file__).resolve().parent
 # Load the backend environment file regardless of the process working directory.
 # Existing process environment variables keep precedence over .env values.
 load_dotenv(BASE_DIR / ".env")
+
+
+def bounded_int_from_env(name: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return max(minimum, min(value, maximum))
 
 
 def configured_mongo_uri() -> str | None:
@@ -91,9 +100,12 @@ SAMPLE_DATA_PATH = BASE_DIR / "Network_Data" / "phisingData.csv"
 DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "Sahilpatil009")
 DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "network-security-edi")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# Keep an explicit environment selection; use the project's selected stable
-# text-generation model when GEMINI_MODEL is omitted.
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").removeprefix("models/")
+# Configurable Gemini model. Defaults to gemini-1.5-flash which is standard on Google AI Studio.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
+GEMINI_TIMEOUT_SECONDS = bounded_int_from_env(
+    "GEMINI_TIMEOUT_SECONDS", default=10, minimum=3, maximum=30
+)
+EXPLANATION_JOB_TTL_SECONDS = 10 * 60
 URL_PREDICTION_COLLECTION_NAME = os.getenv(
     "URL_PREDICTION_COLLECTION_NAME", "url_prediction_history"
 )
@@ -103,6 +115,8 @@ AUTH_SESSION_DAYS = int(os.getenv("AUTH_SESSION_DAYS", "7"))
 url_prediction_collection = None
 auth_user_collection = None
 auth_session_collection = None
+explanation_jobs: dict[str, dict] = {}
+explanation_jobs_lock = Lock()
 origins = ["*"]
 
 app.add_middleware(
@@ -123,14 +137,6 @@ class AuthSignupPayload(BaseModel):
 class AuthLoginPayload(BaseModel):
     email: str
     password: str
-
-
-class SecurityChatPayload(BaseModel):
-    question: str
-    url: str
-    label: str
-    suspicious_features: list[str] = []
-    shap_factors: list[dict] = []
 
 
 def render_template(template_name: str, **context: str) -> HTMLResponse:
@@ -350,170 +356,285 @@ def local_prediction_summary(url: str, label: str, features: dict) -> str:
     )
 
 
-def is_complete_gemini_explanation(summary: str, label: str) -> bool:
-    """Reject truncated prose instead of presenting it as an explanation."""
+def is_complete_gemini_explanation(
+    summary: str, label: str, shap_factors: list[dict] | None = None
+) -> bool:
+    """Reject generic prose that does not cite the supplied Tree SHAP evidence."""
     normalized = " ".join(summary.split())
-    required_sections = ("assessment:", "evidence:", "recommended action:")
+    required_sections = ("assessment:", "shap evidence:", "recommendation:")
+    required_factor_names = [
+        str(factor.get("name", "")).lower()
+        for factor in (shap_factors or [])[:2]
+        if factor.get("name")
+    ]
     return (
-        len(normalized) >= 140
+        len(normalized) >= 80
         and label.lower() in normalized.lower()
         and all(section in normalized.lower() for section in required_sections)
+        and all(name in normalized.lower() for name in required_factor_names)
         and normalized.rstrip().endswith((".", "!"))
     )
 
 
-def explain_prediction_with_gemini(
+def safe_gemini_diagnostic(value: object, maximum_length: int = 240) -> str:
+    """Keep provider diagnostics useful without risking a secret in logs or the UI."""
+    normalized = " ".join(str(value or "").split())
+    normalized = re.sub(r"(?:AIza|gsk_)[\w-]+", "[redacted API key]", normalized)
+    return normalized[:maximum_length]
+
+
+def gemini_http_diagnostic(error: HTTPError) -> str:
+    """Extract Gemini's public error message without retaining response data."""
+    provider_message = ""
+    provider_type = ""
+    try:
+        body = error.read().decode("utf-8", errors="replace")
+        payload = json.loads(body)
+        error_payload = payload.get("error", {}) if isinstance(payload, dict) else {}
+        if isinstance(error_payload, dict):
+            provider_message = str(error_payload.get("message", ""))
+            provider_type = str(error_payload.get("type") or error_payload.get("code") or "")
+    except (OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError, AttributeError):
+        pass
+
+    if error.code in {401, 403} and not provider_message:
+        provider_message = (
+            "Access denied. Check that GEMINI_API_KEY belongs to an active Google AI Studio project "
+            "with Gemini API access."
+        )
+    elif not provider_message:
+        provider_message = str(error.reason or "No additional error message was returned.")
+    detail = safe_gemini_diagnostic(provider_message)
+    suffix = f" ({safe_gemini_diagnostic(provider_type, 60)})" if provider_type else ""
+    return f"Gemini API HTTP {error.code}{suffix}: {detail}"
+
+
+def extract_gemini_text(response_payload: dict) -> str:
+    """Extract text output from Gemini generateContent or Interactions API response."""
+    text_blocks = []
+    # Standard generateContent structure: candidates[0].content.parts[*].text
+    for candidate in response_payload.get("candidates", []):
+        if not isinstance(candidate, dict):
+            continue
+        content = candidate.get("content", {})
+        if isinstance(content, dict):
+            for part in content.get("parts", []):
+                if isinstance(part, dict) and "text" in part:
+                    text_blocks.append(str(part["text"]))
+
+    # Alternate Interactions API structure: steps[*].content[*].text
+    if not text_blocks:
+        for step in response_payload.get("steps", []):
+            if not isinstance(step, dict):
+                continue
+            for content in step.get("content", []):
+                if isinstance(content, dict) and content.get("type") == "text":
+                    text = content.get("text")
+                    if text:
+                        text_blocks.append(str(text))
+    return "\n".join(text_blocks).strip()
+
+
+def explain_prediction_with_gemini_result(
     url: str, label: str, features: dict, metadata: dict, shap_factors: list[dict] | None = None
-) -> str:
+) -> tuple[str, str | None]:
     fallback = local_prediction_summary(url, label, features)
     if not GEMINI_API_KEY:
-        return fallback
+        return fallback, "Gemini is not configured: set GEMINI_API_KEY in the backend .env file."
 
-    suspicious_features = [name for name, value in features.items() if value == -1]
-    neutral_features = [name for name, value in features.items() if value == 0]
-    shap_evidence = "; ".join(
-        f"{factor['name']} ({factor['direction']}, contribution {factor['contribution']:+.3f})"
+    shap_evidence = "\n".join(
+        f"- {factor['name']} = {factor['value']}: {factor['direction']}; Tree SHAP contribution {factor['contribution']:+.4f}"
         for factor in (shap_factors or [])
     ) or "unavailable"
     prompt = (
-        "You are explaining a phishing URL detector result. Return a complete, "
-        "plain-language explanation of the supplied model output only. Do not "
-        "invent facts about the site and do not claim certainty. Use exactly these "
-        "three labels, each followed by one or two complete sentences:\n"
-        "Assessment: state the model prediction and that it is not proof.\n"
-        "Evidence: explain two or more supplied suspicious or neutral signals by name.\n"
-        "Recommended action: give one practical safety check.\n"
-        "Keep the entire answer between 90 and 150 words.\n"
-        f"URL: {url}\n"
-        f"Model prediction: {label}\n"
-        f"Resolved host: {metadata.get('hostname')}\n"
-        f"Page fetch status: {metadata.get('html_status')}\n"
-        f"Suspicious feature names: {', '.join(suspicious_features) or 'none'}\n"
-        f"Neutral or unknown feature names: {', '.join(neutral_features) or 'none'}\n"
-        f"Tree SHAP model factors: {shap_evidence}\n"
+        "Write a concise explanation of this phishing detector output. Use the Tree "
+        "SHAP table as the only evidence; do not infer facts about the website from its "
+        "URL or use any other signals. A positive contribution supports the selected "
+        "prediction and a negative contribution counters it. Copy the first two Tree SHAP "
+        "feature names exactly as written. Return plain text with exactly these headings:\n"
+        "Assessment: state the selected model prediction and that it is not proof.\n"
+        "SHAP evidence: explain how the first two listed factors support or counter that prediction.\n"
+        "Recommendation: give one practical safety check.\n"
+        "Use 80 to 120 words. Do not use Markdown, greetings, or extra headings.\n"
+        f"Selected model prediction: {label}\n"
+        f"Tree SHAP table:\n{shap_evidence}"
     )
 
-    endpoint = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{quote(GEMINI_MODEL, safe='-._')}:generateContent"
-    )
+    # Standard Google Gemini REST API endpoint
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 400},
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "maxOutputTokens": 200,
+            "temperature": 0.2,
+        },
     }
     # Three attempts total; only known transient service/network responses retry.
+    last_diagnostic = "Gemini did not return a usable response."
     for attempt in range(3):
         request = UrlRequest(
             endpoint,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY,
+            },
             method="POST",
         )
         try:
-            with urlopen(request, timeout=20) as response:
+            with urlopen(request, timeout=GEMINI_TIMEOUT_SECONDS) as response:
                 data = json.loads(response.read().decode("utf-8"))
-            parts = data["candidates"][0]["content"]["parts"]
-            summary = " ".join(part.get("text", "") for part in parts).strip()
-            if not is_complete_gemini_explanation(summary, label):
-                logging.warning("Gemini returned an incomplete explanation; using local explanation")
-                return fallback
-            return summary
+            summary = extract_gemini_text(data)
+            if not is_complete_gemini_explanation(summary, label, shap_factors):
+                logging.warning("Gemini returned an explanation without required Tree SHAP evidence; using local explanation")
+                return fallback, "Gemini responded, but the explanation did not cite the required Tree SHAP evidence."
+            return summary, None
         except HTTPError as exc:
             retryable = exc.code in {429, 500, 502, 503, 504}
+            last_diagnostic = gemini_http_diagnostic(exc)
             logging.warning(
-                "Gemini request failed (status=%s, attempt=%s/3, retryable=%s)",
+                "Gemini request failed (model=%s, status=%s, attempt=%s/3, retryable=%s, detail=%s)",
+                GEMINI_MODEL,
                 exc.code,
                 attempt + 1,
                 retryable,
+                last_diagnostic,
             )
             if not retryable or attempt == 2:
                 exc.close()
                 break
             exc.close()
         except (URLError, TimeoutError) as exc:
+            error_type = "timed out" if isinstance(exc, TimeoutError) else "could not be reached"
+            last_diagnostic = (
+                f"Gemini {error_type} after {GEMINI_TIMEOUT_SECONDS} seconds "
+                f"(attempt {attempt + 1}/3): {safe_gemini_diagnostic(getattr(exc, 'reason', exc), 160)}"
+            )
             logging.warning(
-                "Gemini request failed (%s, attempt=%s/3)", type(exc).__name__, attempt + 1
+                "Gemini request failed (model=%s, type=%s, attempt=%s/3, detail=%s)",
+                GEMINI_MODEL,
+                type(exc).__name__,
+                attempt + 1,
+                last_diagnostic,
             )
             if attempt == 2:
                 break
         except (KeyError, IndexError, json.JSONDecodeError) as exc:
-            logging.warning("Gemini returned an unexpected response: %s", type(exc).__name__)
+            last_diagnostic = "Gemini returned an unexpected response format."
+            logging.warning("Gemini returned an unexpected response (model=%s, type=%s)", GEMINI_MODEL, type(exc).__name__)
             break
         time.sleep(2**attempt)
 
-    logging.warning("Gemini explanation unavailable after request attempts; using local explanation")
-    return fallback
+    logging.warning("Gemini explanation unavailable after request attempts; using local explanation: %s", last_diagnostic)
+    return fallback, last_diagnostic
 
 
-def answer_security_question_with_gemini(payload: SecurityChatPayload) -> str:
-    """Answer a scan-specific security question without changing the ML result."""
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=503, detail="Gemini assistant is not configured.")
-    question = payload.question.strip()
-    if not question or len(question) > 600:
-        raise HTTPException(status_code=400, detail="Enter a security question of up to 600 characters.")
+def explain_prediction_with_gemini(
+    url: str, label: str, features: dict, metadata: dict, shap_factors: list[dict] | None = None
+) -> str:
+    """Compatibility wrapper for the synchronous HTML prediction route."""
+    summary, _ = explain_prediction_with_gemini_result(url, label, features, metadata, shap_factors)
+    return summary
 
-    shap_evidence = "; ".join(
-        f"{factor.get('name', 'feature')} ({factor.get('direction', 'unknown direction')})"
-        for factor in payload.shap_factors[:5]
-    ) or "unavailable"
-    prompt = (
-        "You are a cautious cybersecurity assistant for a phishing-detection application. "
-        "Answer the user's question in 3-5 concise sentences. Explain that the model "
-        "prediction is not proof, use only the provided scan evidence, and give concrete "
-        "safe next steps. If the user says they already visited the site, recommend actions "
-        "such as changing a reused password, enabling MFA, checking account activity, and "
-        "contacting the affected service; do not claim that compromise occurred.\n"
-        f"Scanned URL: {payload.url}\n"
-        f"Model prediction: {payload.label}\n"
-        f"Suspicious extracted signals: {', '.join(payload.suspicious_features) or 'none'}\n"
-        f"Tree SHAP factors: {shap_evidence}\n"
-        f"User question: {question}"
+
+def start_gemini_explanation_job(result: dict, user: dict) -> str:
+    """Create an in-memory, user-scoped job so Gemini never blocks URL scoring."""
+    job_id = secrets.token_urlsafe(18)
+    now = datetime.now(timezone.utc)
+    with explanation_jobs_lock:
+        expired_job_ids = [
+            existing_id
+            for existing_id, existing_job in explanation_jobs.items()
+            if (now - existing_job["createdAt"]).total_seconds() > EXPLANATION_JOB_TTL_SECONDS
+        ]
+        for existing_id in expired_job_ids:
+            explanation_jobs.pop(existing_id, None)
+        explanation_jobs[job_id] = {
+            "createdAt": now,
+            "status": "pending",
+            "userId": str(user["_id"]),
+        }
+    return job_id
+
+
+def get_gemini_explanation_job(job_id: str, user: dict) -> dict:
+    with explanation_jobs_lock:
+        job = explanation_jobs.get(job_id)
+        if not job or job["userId"] != str(user["_id"]):
+            raise HTTPException(status_code=404, detail="Explanation request was not found.")
+        return {
+            "status": job["status"],
+            "summary": job.get("summary", ""),
+            "explanationSource": job.get("explanationSource", "Pending Gemini explanation"),
+            "diagnostic": job.get("diagnostic", ""),
+        }
+
+
+def generate_gemini_explanation_job(job_id: str, result: dict, user_id: str) -> None:
+    """Run after the prediction response has been returned to the browser."""
+    features = {feature["name"]: feature["value"] for feature in result["features"]}
+    metadata = {
+        "normalized_url": result["url"],
+        "hostname": result["hostname"],
+        "html_status": result["htmlStatus"],
+    }
+    started_at = time.perf_counter()
+    summary, diagnostic = explain_prediction_with_gemini_result(
+        result["url"], result["label"], features, metadata, result["shap"]["topFeatures"]
     )
-    endpoint = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{quote(GEMINI_MODEL, safe='-._')}:generateContent"
-    )
-    request_data = json.dumps(
-        {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.2, "maxOutputTokens": 350}}
-    ).encode("utf-8")
-    for attempt in range(3):
-        request = UrlRequest(
-            endpoint,
-            data=request_data,
-            headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
-            method="POST",
-        )
+    elapsed = time.perf_counter() - started_at
+    is_gemini_response = not summary.startswith("Local, rule-based explanation:")
+    status = "ready" if is_gemini_response else "unavailable"
+    explanation_source = "Gemini" if is_gemini_response else "Gemini unavailable"
+    response_summary = summary if is_gemini_response else ""
+
+    with explanation_jobs_lock:
+        job = explanation_jobs.get(job_id)
+        if job:
+            job.update(
+                {
+                    "status": status,
+                    "summary": response_summary,
+                    "explanationSource": explanation_source,
+                    "diagnostic": diagnostic or "",
+                }
+            )
+
+    if result.get("historyId") and url_prediction_collection is not None:
         try:
-            with urlopen(request, timeout=20) as response:
-                data = json.loads(response.read().decode("utf-8"))
-            answer = " ".join(
-                part.get("text", "") for part in data["candidates"][0]["content"]["parts"]
-            ).strip()
-            if answer:
-                return answer
-            break
-        except HTTPError as exc:
-            retryable = exc.code in {429, 500, 502, 503, 504}
-            logging.warning("Gemini chat failed (status=%s, attempt=%s/3)", exc.code, attempt + 1)
-            exc.close()
-            if not retryable or attempt == 2:
-                break
-        except (URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
-            logging.warning("Gemini chat failed (%s, attempt=%s/3)", type(exc).__name__, attempt + 1)
-            if attempt == 2:
-                break
-        time.sleep(2**attempt)
-    raise HTTPException(
-        status_code=503,
-        detail="Gemini assistant is temporarily unavailable. Review the Tree SHAP factors and try again later.",
-    )
+            url_prediction_collection.update_one(
+                {"_id": ObjectId(result["historyId"]), "userId": user_id},
+                {
+                    "$set": {
+                        "summary": response_summary,
+                        "explanationSource": explanation_source,
+                        "explanationStatus": status,
+                        "explanationDiagnostic": diagnostic or "",
+                    }
+                },
+            )
+        except pymongo.errors.PyMongoError as exc:
+            logging.warning("Could not persist Gemini explanation status: %s", type(exc).__name__)
+    logging.info("Gemini explanation job finished in %.2f seconds with status=%s", elapsed, status)
 
 
 @lru_cache(maxsize=1)
 def load_prediction_components():
     """Load the persisted preprocessing and classifier pair once per process."""
     return load_object(str(PREPROCESSOR_PATH)), load_object(str(MODEL_PATH))
+
+
+@lru_cache(maxsize=1)
+def get_tree_shap_explainer():
+    """TreeExplainer is model-specific and can be reused for every URL scan."""
+    _, final_model = load_prediction_components()
+    return shap.TreeExplainer(final_model)
 
 
 def predict_dataframe(input_df: pd.DataFrame):
@@ -533,7 +654,7 @@ def build_shap_explanation(feature_df: pd.DataFrame, prediction: int) -> dict:
             else list(feature_df.columns)
         )
         class_index = list(final_model.classes_).index(prediction)
-        shap_values = np.asarray(shap.TreeExplainer(final_model).shap_values(transformed))
+        shap_values = np.asarray(get_tree_shap_explainer().shap_values(transformed))
         if shap_values.ndim == 3:
             contributions = shap_values[0, :, class_index]
         elif shap_values.ndim == 2:
@@ -569,23 +690,43 @@ def build_shap_explanation(feature_df: pd.DataFrame, prediction: int) -> dict:
         }
 
 
-def build_url_prediction(url: str) -> dict:
+def build_url_prediction(url: str, generate_gemini: bool = True) -> dict:
+    started_at = time.perf_counter()
     feature_df, features, metadata = extract_url_features(url)
+    features_finished_at = time.perf_counter()
     y_pred = predict_dataframe(feature_df)
     prediction = int(y_pred[0])
     label = prediction_label(prediction)
+    prediction_finished_at = time.perf_counter()
     shap_explanation = build_shap_explanation(feature_df, prediction)
-    summary = explain_prediction_with_gemini(
-        metadata["normalized_url"],
-        label,
-        features,
-        metadata,
-        shap_explanation["topFeatures"],
-    )
-    explanation_source = (
-        "Local rule-based fallback"
-        if summary.startswith("Local, rule-based explanation:")
-        else "Gemini"
+    shap_finished_at = time.perf_counter()
+    if generate_gemini:
+        summary, explanation_diagnostic = explain_prediction_with_gemini_result(
+            metadata["normalized_url"],
+            label,
+            features,
+            metadata,
+            shap_explanation["topFeatures"],
+        )
+        explanation_source = (
+            "Local rule-based fallback"
+            if summary.startswith("Local, rule-based explanation:")
+            else "Gemini"
+        )
+        explanation_status = "ready" if explanation_source == "Gemini" else "unavailable"
+    else:
+        summary = ""
+        explanation_source = "Pending Gemini explanation"
+        explanation_status = "pending"
+        explanation_diagnostic = ""
+    gemini_finished_at = time.perf_counter()
+    logging.info(
+        "URL scan timing seconds: features=%.2f, prediction=%.2f, shap=%.2f, gemini=%.2f, total=%.2f",
+        features_finished_at - started_at,
+        prediction_finished_at - features_finished_at,
+        shap_finished_at - prediction_finished_at,
+        gemini_finished_at - shap_finished_at,
+        gemini_finished_at - started_at,
     )
     suspicious_count = sum(1 for value in features.values() if value == -1)
     neutral_count = sum(1 for value in features.values() if value == 0)
@@ -601,6 +742,8 @@ def build_url_prediction(url: str) -> dict:
         "statusClass": prediction_class(prediction),
         "summary": summary,
         "explanationSource": explanation_source,
+        "explanationStatus": explanation_status,
+        "explanationDiagnostic": explanation_diagnostic or "",
         "shap": shap_explanation,
         "signals": {
             "suspicious": suspicious_count,
@@ -636,6 +779,8 @@ def save_url_prediction(result: dict, user: dict | None = None) -> dict:
         "statusClass": result["statusClass"],
         "summary": result["summary"],
         "explanationSource": result["explanationSource"],
+        "explanationStatus": result["explanationStatus"],
+        "explanationDiagnostic": result.get("explanationDiagnostic", ""),
         "shap": result["shap"],
         "signals": result["signals"],
         "features": result["features"],
@@ -673,6 +818,9 @@ def serialize_url_prediction_history(document: dict) -> dict:
         "statusClass": document.get("statusClass", "danger"),
         "summary": document.get("summary", ""),
         "explanationSource": document.get("explanationSource", "Local rule-based fallback"),
+        "explanationStatus": document.get("explanationStatus", "unavailable"),
+        "explanationDiagnostic": document.get("explanationDiagnostic", ""),
+        "explanationJobId": document.get("explanationJobId"),
         "shap": document.get(
             "shap", {"available": False, "method": "Tree SHAP", "message": "Not available for this saved scan.", "topFeatures": []}
         ),
@@ -1014,11 +1162,29 @@ async def predict_url_route(url: str = Form(...)):
 
 
 @app.post("/api/predict-url")
-async def api_predict_url(url: str = Form(...), authorization: str | None = Header(default=None)):
+async def api_predict_url(
+    background_tasks: BackgroundTasks,
+    url: str = Form(...),
+    authorization: str | None = Header(default=None),
+):
     try:
         user_document = require_authenticated_user(authorization)
-        result = build_url_prediction(url)
-        return save_url_prediction(result, user_document)
+        result = save_url_prediction(
+            build_url_prediction(url, generate_gemini=False), user_document
+        )
+        job_id = start_gemini_explanation_job(result, user_document)
+        result["explanationJobId"] = job_id
+        url_prediction_collection.update_one(
+            {"_id": ObjectId(result["historyId"]), "userId": str(user_document["_id"])},
+            {"$set": {"explanationJobId": job_id}},
+        )
+        background_tasks.add_task(
+            generate_gemini_explanation_job,
+            job_id,
+            result.copy(),
+            str(user_document["_id"]),
+        )
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -1029,12 +1195,12 @@ async def api_predict_url(url: str = Form(...), authorization: str | None = Head
         }
 
 
-@app.post("/api/security-chat")
-async def api_security_chat(
-    payload: SecurityChatPayload, authorization: str | None = Header(default=None)
+@app.get("/api/prediction-explanations/{job_id}")
+async def api_prediction_explanation(
+    job_id: str, authorization: str | None = Header(default=None)
 ):
-    require_authenticated_user(authorization)
-    return {"answer": answer_security_question_with_gemini(payload)}
+    user_document = require_authenticated_user(authorization)
+    return get_gemini_explanation_job(job_id, user_document)
 
 
 @app.post("/api/predict-csv")
