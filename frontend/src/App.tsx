@@ -13,6 +13,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) =
 const HistoryPage = lazy(() => import("./pages/HistoryPage").then((module) => ({ default: module.HistoryPage })));
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const ModelsPage = lazy(() => import("./pages/ModelsPage").then((module) => ({ default: module.ModelsPage })));
+const MonitoringPage = lazy(() => import("./pages/MonitoringPage").then((module) => ({ default: module.MonitoringPage })));
 
 function App() {
   const workspace = usePredictionWorkspace();
@@ -57,6 +58,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="monitoring" element={<MonitoringPage />} />
             <Route
               path="history"
               element={
