@@ -35,7 +35,7 @@ jobs:
       - name: Install Frontend Dependencies & Build Bundle
         run: |
           cd frontend
-          npm ci
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Install Python Dependencies
@@ -95,7 +95,7 @@ jobs:
       - name: Build Frontend Production Dist
         run: |
           cd frontend
-          npm ci
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Build Docker Image
