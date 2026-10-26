@@ -1,0 +1,149 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Total URL Inferences",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "phishing_requests_total",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "Inference Latency (p50 ms)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "phishing_latency_ms{quantile=\"0.5\"}",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "Dataset Feature Drift Score",
+      "type": "gauge",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "phishing_feature_drift_score",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "max": 0.5,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.18 },
+              { "color": "red", "value": 0.25 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "title": "Throughput (RPM)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "phishing_throughput_rpm",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 5 },
+      "id": 5,
+      "title": "Verdicts (Phishing vs Legitimate)",
+      "type": "barchart",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "phishing_verdict_total",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 5 },
+      "id": 6,
+      "title": "Inference Latency Percentiles (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "phishing_latency_ms",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["mlops", "phishing", "security"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "PhishGuard Production MLOps Dashboard",
+  "uid": "phishguard-mlops-dashboard",
+  "version": 1
+}
