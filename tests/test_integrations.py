@@ -48,14 +48,13 @@ class GeminiIntegrationTests(unittest.TestCase):
         self.assertIn("Assessment:", summary)
         self.assertIn("URL_of_Anchor", summary)
         payload = json.loads(urlopen.call_args.args[0].data.decode("utf-8"))
-        prompt = payload["input"]
+        prompt = payload["contents"][0]["parts"][0]["text"]
         self.assertIn("Tree SHAP table", prompt)
         self.assertIn("URL_of_Anchor", prompt)
         self.assertNotIn("Suspicious feature names", prompt)
-        self.assertEqual(payload["model"], app.GEMINI_MODEL)
-        self.assertEqual(payload["generation_config"]["thinking_level"], "minimal")
+        self.assertEqual(payload["generationConfig"]["thinkingConfig"]["thinkingBudget"], 0)
         self.assertEqual(urlopen.call_args.args[0].get_header("X-goog-api-key"), "test-key")
-        self.assertEqual(urlopen.call_args.args[0].full_url, "https://generativelanguage.googleapis.com/v1beta/interactions")
+        self.assertIn(f"models/{app.GEMINI_MODEL}:generateContent", urlopen.call_args.args[0].full_url)
         self.assertEqual(urlopen.call_count, 2)
         sleep.assert_called_once_with(1)
 
