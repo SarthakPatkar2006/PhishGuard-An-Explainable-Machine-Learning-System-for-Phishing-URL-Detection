@@ -13,14 +13,16 @@ import {
   FileSpreadsheet, 
   ArrowRight,
   UserPlus,
-  LogIn
+  LogIn,
+  AlertTriangle,
+  Globe,
+  Search
 } from "lucide-react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import type { AuthCredentials, AuthUser } from "../lib/types";
-import authLaptopImg from "../assets/auth-laptop.png";
 
 interface AuthPageProps {
   authError: string;
@@ -80,13 +82,13 @@ function AuthPage({ authError, isSubmitting, onLogin, onSignup, user }: AuthPage
   }
 
   return (
-    <main className="relative isolate min-h-[calc(100vh-65px)] flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-7xl grid gap-12 lg:grid-cols-[1.2fr_0.9fr] lg:items-center">
-        {/* Left Side: Brand, Hero & Visual Illustration */}
-        <div className="space-y-7">
+    <main className="relative isolate min-h-[calc(100vh-65px)] flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl grid gap-10 lg:grid-cols-[1.22fr_0.88fr] lg:items-center">
+        {/* Left Side: Brand, Hero & Ultra-Crisp Cyber Visual */}
+        <div className="space-y-6">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-400/40 bg-cyan-500/20 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.35)]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-400/50 bg-cyan-500/20 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)]">
               <ShieldCheck className="h-6 w-6" />
             </span>
             <div>
@@ -118,20 +120,82 @@ function AuthPage({ authError, isSubmitting, onLogin, onSignup, user }: AuthPage
             Detect malicious and fraudulent websites using Machine Learning. Analyse URLs instantly and stay one step ahead of cyber threats.
           </p>
 
-          {/* Laptop & Threats Graphic */}
-          <div className="relative group max-w-lg py-2">
-            <div className="absolute -inset-4 rounded-3xl bg-cyan-500/15 blur-2xl opacity-60" />
-            <div className="relative flex items-center justify-center">
-              <img
-                src={authLaptopImg}
-                alt="Phishing Detection Simulation"
-                className="w-full max-w-md h-auto object-contain drop-shadow-[0_15px_35px_rgba(6,182,212,0.3)] transition-transform duration-300 hover:scale-[1.02]"
-              />
+          {/* Ultra-Crisp Vector/CSS Cyber Security Laptop Mockup (100% Vector, Zero Blur) */}
+          <div className="relative mx-auto w-full max-w-lg py-4">
+            {/* Ambient Background Glow Shield */}
+            <div className="absolute top-1 right-8 -z-0 h-44 w-40 opacity-40 blur-sm pointer-events-none">
+              <div className="h-full w-full rounded-t-full border-2 border-cyan-400/60 bg-gradient-to-b from-cyan-500/30 to-blue-600/10 shadow-[0_0_50px_rgba(6,182,212,0.5)] flex items-center justify-center">
+                <Lock className="h-16 w-16 text-cyan-300/60" />
+              </div>
+            </div>
+
+            {/* Floating Red Warning Badge (Top Left with glowing pointer) */}
+            <div className="absolute -top-2 left-2 sm:left-4 z-20 flex items-center gap-2.5 rounded-xl border border-red-500/80 bg-[#160608]/95 px-3 py-2 shadow-[0_0_25px_rgba(239,68,68,0.4)] backdrop-blur-md">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-red-500/25 text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+              </span>
+              <div>
+                <span className="block text-[11px] font-mono font-bold text-slate-200">http://suspicious-login.com</span>
+                <span className="block text-[10px] font-black uppercase tracking-wider text-red-400">Phishing Detected</span>
+              </div>
+              {/* Dotted pointer to laptop screen */}
+              <div className="hidden sm:block absolute -bottom-4 left-7 h-4 w-0.5 border-l-2 border-dashed border-red-500/80" />
+            </div>
+
+            {/* Floating Green Verified Badge (Bottom Right) */}
+            <div className="absolute bottom-6 right-2 sm:right-4 z-20 flex items-center gap-2 rounded-xl border border-emerald-500/80 bg-[#04140d]/95 px-3 py-1.5 shadow-[0_0_20px_rgba(16,185,129,0.4)] backdrop-blur-md">
+              <span className="grid h-6 w-6 place-items-center rounded-lg bg-emerald-500/25 text-emerald-400">
+                <ShieldCheck className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <span className="block text-[10px] font-mono text-slate-300">https://bank.com</span>
+                <span className="block text-[10px] font-bold text-emerald-400">Safe</span>
+              </div>
+            </div>
+
+            {/* Laptop Screen Bezel */}
+            <div className="relative mx-auto w-[92%] rounded-t-2xl border-2 border-slate-700/80 bg-gradient-to-b from-[#0e1726] to-[#040812] p-3 shadow-2xl shadow-cyan-950/70">
+              {/* Top Camera Notch */}
+              <div className="mx-auto mb-2 flex items-center justify-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />
+                <span className="h-1 w-6 rounded-full bg-slate-800" />
+              </div>
+
+              {/* High-Resolution Screen Display Area */}
+              <div className="rounded-xl border border-cyan-500/30 bg-[#030914] p-3.5 shadow-inner">
+                {/* Browser URL bar */}
+                <div className="flex items-center justify-between rounded-xl border border-slate-700/80 bg-[#071322] px-3 py-1.5 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-cyan-400" />
+                    <span className="text-xs font-mono font-medium text-slate-200">https://example.com</span>
+                  </div>
+                  <span className="grid h-5 w-5 place-items-center rounded-md bg-cyan-500 text-slate-950 shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+                    <Search className="h-3 w-3" />
+                  </span>
+                </div>
+
+                {/* Center Live Verdict Card on Screen */}
+                <div className="mt-3.5 rounded-xl border border-cyan-400/50 bg-gradient-to-b from-cyan-950/50 to-[#041220]/90 p-3.5 text-center shadow-[0_0_30px_rgba(6,182,212,0.25)]">
+                  <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl border border-cyan-400/50 bg-cyan-500/25 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <h4 className="mt-2 text-xs font-black tracking-wide text-white">Safe Website</h4>
+                  <p className="text-[10px] text-cyan-200 font-medium">This URL appears to be legitimate.</p>
+                  <div className="mt-2 mx-auto h-1 w-24 rounded-full bg-cyan-950 overflow-hidden">
+                    <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Laptop Base (3D Keyboard Deck with blue neon underglow) */}
+            <div className="relative mx-auto h-3.5 w-full rounded-b-xl border-t border-slate-600 bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 shadow-[0_12px_30px_rgba(0,0,0,0.85),0_0_25px_rgba(6,182,212,0.35)]">
+              <div className="mx-auto h-1 w-16 rounded-b bg-slate-900" />
             </div>
           </div>
 
           {/* 3 Bottom Feature Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
             {/* Feature 1 */}
             <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#071322]/80 p-3.5 backdrop-blur-md shadow-lg shadow-cyan-950/30">
               <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-500/30 bg-cyan-500/15 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
