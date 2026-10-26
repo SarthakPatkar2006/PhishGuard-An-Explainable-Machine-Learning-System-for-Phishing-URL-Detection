@@ -10,18 +10,18 @@ function ModelsPage({ report }: { report: ModelComparisonReport }) {
   const trainedCount = report.models.filter((model) => model.status === "trained").length;
 
   return (
-    <main className="bg-[#f3f7f8] px-4 py-16 text-slate-950 sm:px-6 lg:px-8">
+    <main className="relative isolate px-4 py-12 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <Badge className="mb-3 border-teal-200 bg-teal-50 text-teal-800">
-              <BrainCircuit className="h-3.5 w-3.5" />
-              Model comparison
+            <Badge className="mb-3 border-cyan-500/30 bg-cyan-950/40 text-cyan-300">
+              <BrainCircuit className="h-3.5 w-3.5 mr-1 text-cyan-400" />
+              Model Benchmarks
             </Badge>
-            <h1 className="text-3xl font-semibold sm:text-4xl">Find the best phishing detector</h1>
+            <h1 className="text-3xl font-extrabold sm:text-4xl text-white">Find the Best Phishing Detector</h1>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-slate-600">
-            Training now compares Random Forest, XGBoost, Logistic Regression, and Decision Tree, then saves the best model by test F1 score.
+          <p className="max-w-xl text-xs sm:text-sm leading-6 text-slate-300">
+            Training automatically evaluates Random Forest, XGBoost, Logistic Regression, and Decision Tree, selecting the highest F1-score model for deployment.
           </p>
         </div>
 

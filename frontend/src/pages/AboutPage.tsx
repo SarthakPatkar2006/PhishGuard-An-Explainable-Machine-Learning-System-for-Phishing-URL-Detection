@@ -23,7 +23,7 @@ const workflowSteps = [
   },
   {
     title: "Readable summary",
-    description: "Gemini adds a short explanation to help users understand the model result.",
+    description: "Gemini adds a short explanation grounded in the model's Tree SHAP factors.",
     icon: Sparkles,
   },
 ];

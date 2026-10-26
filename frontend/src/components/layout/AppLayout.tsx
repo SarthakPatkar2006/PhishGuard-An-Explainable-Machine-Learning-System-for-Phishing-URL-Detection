@@ -11,9 +11,11 @@ interface AppLayoutProps {
 
 function AppLayout({ onLogout, user }: AppLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="flex min-h-screen flex-col cyber-bg text-slate-100 antialiased selection:bg-cyan-500/30">
       <Navbar onLogout={onLogout} user={user} />
-      <Outlet />
+      <div className="flex-1">
+        <Outlet />
+      </div>
       <Footer />
     </div>
   );

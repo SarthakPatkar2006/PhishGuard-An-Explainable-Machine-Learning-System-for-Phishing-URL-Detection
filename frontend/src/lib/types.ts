@@ -38,10 +38,20 @@ interface ShapExplanation {
   topFeatures: ShapFactor[];
 }
 
+interface GeminiExplanationUpdate {
+  diagnostic: string;
+  explanationSource: "Gemini" | "Gemini unavailable" | "Pending Gemini explanation";
+  status: "pending" | "ready" | "unavailable";
+  summary: string;
+}
+
 interface UrlPrediction {
   createdAt?: string;
   dnsStatus: string;
-  explanationSource?: "Gemini" | "Local rule-based fallback";
+  explanationDiagnostic?: string;
+  explanationJobId?: string;
+  explanationSource?: "Gemini" | "Gemini unavailable" | "Local rule-based fallback" | "Pending Gemini explanation" | "Groq" | "Groq unavailable" | "Pending Groq explanation";
+  explanationStatus?: "pending" | "ready" | "unavailable";
   features: UrlFeature[];
   finalUrl: string;
   historyId?: string;
@@ -127,6 +137,7 @@ export type {
   AuthSession,
   AuthUser,
   CsvPrediction,
+  GeminiExplanationUpdate,
   ModelComparisonReport,
   ModelComparisonRow,
   PredictionHistoryResponse,

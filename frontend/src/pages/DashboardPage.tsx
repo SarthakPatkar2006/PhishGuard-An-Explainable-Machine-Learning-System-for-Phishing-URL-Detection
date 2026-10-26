@@ -21,17 +21,17 @@ function DashboardPage({ history, signalData, status, urlResult, user }: Dashboa
   const legitimateCount = history.filter((item) => item.label === "Legitimate").length;
 
   return (
-    <main className="bg-white px-4 py-16 text-slate-950 sm:px-6 lg:px-8">
+    <main className="relative isolate px-4 py-12 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <Badge className="mb-3 border-teal-200 bg-teal-50 text-teal-800">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Dashboard
+            <Badge className="mb-3 border-cyan-500/30 bg-cyan-950/40 text-cyan-300">
+              <BarChart3 className="h-3.5 w-3.5 mr-1" />
+              Live Dashboard
             </Badge>
-            <h1 className="text-3xl font-semibold sm:text-4xl">Operational monitoring view</h1>
+            <h1 className="text-3xl font-extrabold sm:text-4xl text-white">Security & Operational Metrics</h1>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-slate-600">
+          <p className="max-w-xl text-xs sm:text-sm leading-6 text-slate-300">
             {user
               ? `Status, ${user.name}'s MongoDB-backed history, and signal distribution are grouped for fast scanning.`
               : "System status is visible now. Sign in to load your saved prediction history and signal distribution."}

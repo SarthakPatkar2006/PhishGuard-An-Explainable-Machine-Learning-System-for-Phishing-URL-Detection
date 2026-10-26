@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import {
   getCurrentUser,
   getModelComparison,
+  getPredictionExplanation,
   getPredictionHistory,
   getStatus,
   login,
@@ -91,6 +92,31 @@ function usePredictionWorkspace() {
     [latestUrlResult],
   );
 
+  const waitForGeminiExplanation = useCallback(async (jobId: string) => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      try {
+        const explanation = await getPredictionExplanation(jobId);
+        if (explanation.status === "pending") continue;
+        const applyExplanation = (item: UrlPrediction) =>
+          item.explanationJobId === jobId
+            ? {
+                ...item,
+                explanationSource: explanation.explanationSource,
+                explanationStatus: explanation.status,
+                explanationDiagnostic: explanation.diagnostic,
+                summary: explanation.summary,
+              }
+            : item;
+        setUrlResult((current) => (current ? applyExplanation(current) : current));
+        setHistory((current) => current.map(applyExplanation));
+        return;
+      } catch {
+        return;
+      }
+    }
+  }, []);
+
   async function handleUrlSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -101,6 +127,9 @@ function usePredictionWorkspace() {
       setActiveResult("url");
       if (authUser) {
         setHistory((current) => [result, ...current].slice(0, 20));
+      }
+      if (result.explanationJobId) {
+        void waitForGeminiExplanation(result.explanationJobId);
       }
     } catch (apiError) {
       setError(apiError instanceof Error ? apiError.message : "Unable to analyze this URL.");

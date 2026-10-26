@@ -4,6 +4,7 @@ import type {
   AuthSession,
   AuthUser,
   CsvPrediction,
+  GeminiExplanationUpdate,
   ModelComparisonReport,
   PredictionHistoryResponse,
   UrlPrediction,
@@ -18,7 +19,7 @@ function apiUrl(path: string) {
 }
 
 const mockStatus: AppStatus = {
-  gemini: { meta: "gemini-3.5-flash", ready: true, status: "Configured" },
+  gemini: { meta: "gemini-3.8-flash", ready: true, status: "Configured" },
   model: { meta: "1,655 KB | local artifact", ready: true, status: "Ready" },
   modelComparison: { meta: "Run training to generate report", ready: false, status: "Not generated" },
   mongo: { meta: "Local development connection", ready: true, status: "Configured" },
@@ -166,6 +167,13 @@ async function getModelComparison(): Promise<ModelComparisonReport> {
   return parseJson<ModelComparisonReport>(response);
 }
 
+async function getPredictionExplanation(jobId: string): Promise<GeminiExplanationUpdate> {
+  const response = await fetch(apiUrl(`/api/prediction-explanations/${encodeURIComponent(jobId)}`), {
+    headers: authHeaders(),
+  });
+  return parseJson<GeminiExplanationUpdate>(response);
+}
+
 async function predictUrl(url: string): Promise<UrlPrediction> {
   const body = new FormData();
   body.append("url", url);
@@ -188,28 +196,12 @@ async function predictCsv(file: File): Promise<CsvPrediction> {
   return parseJson<CsvPrediction>(response);
 }
 
-async function askSecurityQuestion(question: string, result: UrlPrediction): Promise<string> {
-  const response = await fetch(apiUrl("/api/security-chat"), {
-    body: JSON.stringify({
-      label: result.label,
-      question,
-      shap_factors: result.shap?.topFeatures ?? [],
-      suspicious_features: result.suspiciousFeatures ?? result.features.filter((feature) => feature.signal === "Suspicious").map((feature) => feature.name),
-      url: result.url,
-    }),
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    method: "POST",
-  });
-  const payload = await parseJson<{ answer: string }>(response);
-  return payload.answer;
-}
-
 export {
   clearAuthToken,
   apiUrl,
-  askSecurityQuestion,
   getCurrentUser,
   getModelComparison,
+  getPredictionExplanation,
   getPredictionHistory,
   getStatus,
   getStoredAuthToken,

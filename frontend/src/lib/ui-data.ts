@@ -20,7 +20,7 @@ const featureCards: FeatureCardConfig[] = [
   },
   {
     title: "Gemini Explanation",
-    description: "Summarizes the model decision in plain language so users understand what the detector noticed.",
+    description: "Summarizes the model decision using the supplied Tree SHAP factors.",
     icon: Sparkles,
   },
 ];

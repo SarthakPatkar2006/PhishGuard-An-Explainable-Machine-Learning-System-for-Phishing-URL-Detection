@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -e .
 # Copy application files
 COPY app.py .
 COPY templates/ ./templates/
+COPY frontend/dist/ ./frontend/dist/
 COPY final_model/ ./final_model/
 COPY Network_Data/ ./Network_Data/
 COPY data_schema/ ./data_schema/

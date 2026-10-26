@@ -12,17 +12,17 @@ function HistoryPage({ history, user }: { history: UrlPrediction[]; user: AuthUs
   const suspiciousSignalCount = history.reduce((total, item) => total + item.signals.suspicious, 0);
 
   return (
-    <main className="bg-[#f3f7f8] px-4 py-16 text-slate-950 sm:px-6 lg:px-8">
+    <main className="relative isolate px-4 py-12 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <Badge className="mb-3 border-slate-300 bg-white text-slate-700">
-              <Database className="h-3.5 w-3.5 text-teal-600" />
-              MongoDB history
+            <Badge className="mb-3 border-cyan-500/30 bg-cyan-950/40 text-cyan-300">
+              <Database className="h-3.5 w-3.5 mr-1 text-cyan-400" />
+              MongoDB Scan History
             </Badge>
-            <h1 className="text-3xl font-semibold sm:text-4xl">Saved URL predictions</h1>
+            <h1 className="text-3xl font-extrabold sm:text-4xl text-white">Saved URL Predictions</h1>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-slate-600">
+          <p className="max-w-xl text-xs sm:text-sm leading-6 text-slate-300">
             {user
               ? `Showing saved URL predictions for ${user.name}.`
               : "Sign in to load saved URL predictions from your account."}

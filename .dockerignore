@@ -42,4 +42,4 @@ mlruns/
 
 # Node / Frontend development (if building separately)
 frontend/node_modules/
-frontend/dist/
+
