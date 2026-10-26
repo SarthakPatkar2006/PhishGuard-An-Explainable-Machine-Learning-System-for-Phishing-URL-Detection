@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 
 import { Footer } from "./Footer";
-import { Navbar } from "./Navbar";
+import { SidebarNavbar } from "./SidebarNavbar";
 import type { AuthUser } from "../../lib/types";
 
 interface AppLayoutProps {
@@ -11,12 +11,17 @@ interface AppLayoutProps {
 
 function AppLayout({ onLogout, user }: AppLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col cyber-bg text-slate-100 antialiased selection:bg-cyan-500/30">
-      <Navbar onLogout={onLogout} user={user} />
-      <div className="flex-1">
-        <Outlet />
+    <div className="flex min-h-screen cyber-bg text-slate-100 antialiased selection:bg-cyan-500/30">
+      {/* Left Collapsible Sidebar */}
+      <SidebarNavbar onLogout={onLogout} user={user} />
+
+      {/* Main Content Area (Offset by sidebar width on desktop) */}
+      <div className="flex flex-1 flex-col transition-all duration-300 md:pl-20">
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <Footer />
       </div>
-      <Footer />
     </div>
   );
 }

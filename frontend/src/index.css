@@ -2,12 +2,6 @@
 
 @theme {
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --color-cyber-bg: #070d17;
-  --color-cyber-card: #0b1526;
-  --color-cyber-card-light: #ffffff;
-  --color-cyber-border: rgba(30, 58, 95, 0.5);
-  --color-cyber-accent: #06b6d4;
-  --color-cyber-emerald: #10b981;
 }
 
 * {
@@ -22,30 +16,37 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background-color: #060b13;
+  background-color: #030712;
   color: #f1f5f9;
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
 
-/* Background Cyber Atmosphere */
+/* Vibrant Cyber Backdrop using User's Wallpapers */
 .cyber-bg {
-  background-color: #060b13;
+  position: relative;
+  background-color: #030712;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.25), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(147, 51, 234, 0.18), transparent),
+    radial-gradient(ellipse 50% 50% at 0% 100%, rgba(16, 185, 129, 0.15), transparent);
   background-attachment: fixed;
 }
 
-.cyber-grid-pattern {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+/* Glassmorphism Card Panels */
+.cyber-panel-light {
+  background-color: #ffffff !important;
+  color: #0f172a !important; /* Forces rich readable slate-900 black font */
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 20px 40px -15px rgba(2, 6, 23, 0.4), 0 0 25px rgba(6, 182, 212, 0.15);
 }
 
-/* Glowing text and borders */
+.cyber-panel-light * {
+  /* Prevent dark-mode text-color inheritance inside white cards */
+  --tw-text-opacity: 1;
+}
+
+/* Neon Gradient texts */
 .text-gradient-cyan {
   background: linear-gradient(135deg, #38bdf8 0%, #06b6d4 50%, #2dd4bf 100%);
   -webkit-background-clip: text;
@@ -53,36 +54,28 @@ body {
 }
 
 .text-gradient-purple {
-  background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+  background: linear-gradient(135deg, #c084fc 0%, #a855f7 50%, #6366f1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.glow-card-cyan {
-  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
-}
-
-.glow-card-emerald {
-  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
-}
-
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #060b13;
+  background: #030712;
 }
 ::-webkit-scrollbar-thumb {
   background: #1e293b;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #06b6d4;
 }
 
 ::selection {
-  background: rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.4);
   color: #ffffff;
 }
