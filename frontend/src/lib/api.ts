@@ -7,6 +7,7 @@ import type {
   GeminiExplanationUpdate,
   ModelComparisonReport,
   PredictionHistoryResponse,
+  TelemetryData,
   UrlPrediction,
 } from "./types";
 
@@ -196,6 +197,15 @@ async function predictCsv(file: File): Promise<CsvPrediction> {
   return parseJson<CsvPrediction>(response);
 }
 
+async function getTelemetry() {
+  try {
+    const response = await fetch(apiUrl("/api/telemetry"));
+    return parseJson<TelemetryData>(response);
+  } catch {
+    return null;
+  }
+}
+
 export {
   clearAuthToken,
   apiUrl,
@@ -205,6 +215,7 @@ export {
   getPredictionHistory,
   getStatus,
   getStoredAuthToken,
+  getTelemetry,
   login,
   logout,
   mockModelComparison,

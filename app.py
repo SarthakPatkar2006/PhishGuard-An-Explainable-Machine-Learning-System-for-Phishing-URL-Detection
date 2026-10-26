@@ -29,7 +29,7 @@ from networksecurity.logging.logger import logging
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import BackgroundTasks, FastAPI, File, Form, Header, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import BaseModel
 from uvicorn import run as app_run
 import pandas as pd
@@ -38,6 +38,7 @@ import shap
 
 from networksecurity.utils.main_utils.utils import load_object
 from networksecurity.utils.ml_utils.model.estimator import NetworkModel
+from networksecurity.utils.telemetry import ModelTelemetry
 from networksecurity.utils.url_feature_extractor import extract_url_features
 
 
@@ -98,6 +99,7 @@ MODEL_COMPARISON_JSON_PATH = BASE_DIR / "final_model" / "model_comparison.json"
 MODEL_COMPARISON_CSV_PATH = BASE_DIR / "final_model" / "model_comparison.csv"
 PREDICTION_OUTPUT_PATH = BASE_DIR / "prediction_output" / "output.csv"
 SAMPLE_DATA_PATH = BASE_DIR / "Network_Data" / "phisingData.csv"
+telemetry = ModelTelemetry(baseline_csv_path=SAMPLE_DATA_PATH)
 DAGSHUB_REPO_OWNER = os.getenv("DAGSHUB_REPO_OWNER", "Sahilpatil009")
 DAGSHUB_REPO_NAME = os.getenv("DAGSHUB_REPO_NAME", "network-security-edi")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -702,6 +704,11 @@ def build_url_prediction(url: str, generate_gemini: bool = True) -> dict:
     prediction = int(y_pred[0])
     label = prediction_label(prediction)
     prediction_finished_at = time.perf_counter()
+    telemetry.track_prediction(
+        latency_ms=round((prediction_finished_at - features_finished_at) * 1000, 2),
+        verdict=label,
+        features=features,
+    )
     shap_explanation = build_shap_explanation(feature_df, prediction)
     shap_finished_at = time.perf_counter()
     if generate_gemini:
@@ -1275,6 +1282,21 @@ async def sample_data():
         media_type="text/csv",
         filename="phisingData.csv",
     )
+
+
+@app.get("/metrics")
+async def prometheus_metrics():
+    """Prometheus OpenMetrics telemetry endpoint for model monitoring."""
+    return Response(
+        content=telemetry.get_prometheus_metrics(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
+
+
+@app.get("/api/telemetry")
+async def api_telemetry():
+    """JSON Telemetry & Feature Drift monitoring metrics for dashboard."""
+    return telemetry.get_telemetry_json()
 
 
 # Single Page Application fallback for React Router (/analyze, /dashboard, /models, etc.)

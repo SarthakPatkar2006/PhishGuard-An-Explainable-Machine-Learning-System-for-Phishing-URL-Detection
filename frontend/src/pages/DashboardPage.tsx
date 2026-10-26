@@ -1,10 +1,13 @@
+import { useState, useEffect } from "react";
 import { BarChart3, Clock, AlertTriangle, ShieldCheck, ShieldAlert, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 import { AuthRequiredPanel } from "../components/auth/AuthRequiredPanel";
 import { HistoryList } from "../components/dashboard/HistoryList";
 import { SignalDistributionChart } from "../components/dashboard/SignalDistributionChart";
 import { StatusCards } from "../components/dashboard/StatusCards";
-import type { AppStatus, AuthUser, UrlPrediction } from "../lib/types";
+import { TelemetryPanel } from "../components/dashboard/TelemetryPanel";
+import { getTelemetry } from "../lib/api";
+import type { AppStatus, AuthUser, TelemetryData, UrlPrediction } from "../lib/types";
 import cyberBgImage from "../assets/cyber-bg.jpg";
 
 interface DashboardPageProps {
@@ -16,6 +19,17 @@ interface DashboardPageProps {
 }
 
 function DashboardPage({ history, signalData, status, urlResult, user }: DashboardPageProps) {
+  const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
+
+  useEffect(() => {
+    void getTelemetry().then(setTelemetry);
+    // Poll telemetry every 15 seconds for live dashboard updates
+    const interval = setInterval(() => {
+      void getTelemetry().then(setTelemetry);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const phishingCount = history.filter((item) => item.label === "Phishing").length;
   const legitimateCount = history.filter((item) => item.label === "Legitimate").length;
   const latestSuspicious = urlResult ? urlResult.signals.suspicious : (history[0]?.signals.suspicious ?? 0);
@@ -121,7 +135,12 @@ function DashboardPage({ history, signalData, status, urlResult, user }: Dashboa
           </div>
         </div>
 
-        {/* 3. Bottom 2-Column Section: Chart & Recent URL Checks */}
+        {/* 3. Live Model Telemetry & Dataset Drift Monitoring Panel */}
+        <div className="mt-5">
+          <TelemetryPanel telemetry={telemetry} />
+        </div>
+
+        {/* 4. Bottom 2-Column Section: Chart & Recent URL Checks */}
         {user ? (
           <div className="mt-5 grid gap-5 lg:grid-cols-[0.9fr_1.1fr] items-start">
             <SignalDistributionChart signalData={signalData} />

@@ -241,5 +241,34 @@ class PredictionAndMongoTests(unittest.TestCase):
             ) = original_state
 
 
+class TelemetryTests(unittest.TestCase):
+    def test_telemetry_tracks_prediction_and_generates_metrics(self):
+        from networksecurity.utils.telemetry import ModelTelemetry
+        tm = ModelTelemetry(baseline_csv_path=app.SAMPLE_DATA_PATH)
+        tm.track_prediction(
+            latency_ms=45.2,
+            verdict="Phishing",
+            features={"URL_Length": -1, "having_IP_Address": -1},
+        )
+        tm.track_prediction(
+            latency_ms=52.8,
+            verdict="Legitimate",
+            features={"URL_Length": 1, "having_IP_Address": 1},
+        )
+
+        data = tm.get_telemetry_json()
+        self.assertEqual(data["total_requests"], 2)
+        self.assertEqual(data["distribution"]["phishing"], 1)
+        self.assertEqual(data["distribution"]["legitimate"], 1)
+        self.assertIn("drift", data)
+        self.assertIn("latency_ms", data)
+        self.assertGreaterEqual(data["latency_ms"]["avg"], 45.0)
+
+        prom = tm.get_prometheus_metrics()
+        self.assertIn("phishing_requests_total 2", prom)
+        self.assertIn('phishing_verdict_total{verdict="Phishing"} 1', prom)
+        self.assertIn("phishing_feature_drift_score", prom)
+
+
 if __name__ == "__main__":
     unittest.main()

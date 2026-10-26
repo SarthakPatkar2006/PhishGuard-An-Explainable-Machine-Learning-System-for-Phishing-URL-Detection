@@ -131,6 +131,44 @@ interface ModelComparisonReport {
   reportMeta?: string;
 }
 
+interface TelemetryData {
+  status: string;
+  uptime_seconds: number;
+  total_requests: number;
+  total_errors: number;
+  throughput_rpm: number;
+  latency_ms: {
+    avg: number;
+    p50: number;
+    p95: number;
+    p99: number;
+  };
+  distribution: {
+    phishing: number;
+    legitimate: number;
+    phishing_percentage: number;
+    legitimate_percentage: number;
+  };
+  drift: {
+    status: string;
+    score: number;
+    threshold: number;
+    samples_analyzed: number;
+    top_drifting_features: Array<{
+      feature: string;
+      baseline_mean: number;
+      live_mean: number;
+      shift: number;
+      relative_deviation: number;
+    }>;
+  };
+  system: {
+    active_model: string;
+    framework: string;
+    drift_engine: string;
+  };
+}
+
 export type {
   AppStatus,
   AuthCredentials,
@@ -141,6 +179,7 @@ export type {
   ModelComparisonReport,
   ModelComparisonRow,
   PredictionHistoryResponse,
+  TelemetryData,
   UrlFeature,
   UrlPrediction,
 };
