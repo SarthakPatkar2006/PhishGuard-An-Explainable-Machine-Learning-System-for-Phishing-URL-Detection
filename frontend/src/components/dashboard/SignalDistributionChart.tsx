@@ -1,11 +1,14 @@
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import { BarChart2, ChevronDown } from "lucide-react";
+import { useState } from "react";
 
 interface SignalDistributionChartProps {
   signalData: Array<{ color: string; name: string; value: number }>;
 }
 
 function SignalDistributionChart({ signalData }: SignalDistributionChartProps) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const maxValue = Math.max(...signalData.map((d) => d.value), 5);
+
   return (
     <div className="rounded-2xl border border-cyan-500/20 bg-[#071322]/85 p-5 shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between mb-4">
@@ -26,40 +29,61 @@ function SignalDistributionChart({ signalData }: SignalDistributionChartProps) {
         </button>
       </div>
 
-      <div className="h-64 w-full pt-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={signalData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <XAxis 
-              dataKey="name" 
-              stroke="#64748b" 
-              tickLine={false} 
-              axisLine={{ stroke: "#1e293b" }}
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
-            />
-            <YAxis 
-              allowDecimals={false} 
-              stroke="#64748b" 
-              tickLine={false} 
-              axisLine={{ stroke: "#1e293b" }}
-              tick={{ fill: "#94a3b8", fontSize: 11 }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#0b1526",
-                borderColor: "#1e3a5f",
-                borderRadius: "12px",
-                color: "#fff",
-                fontSize: "12px",
-                boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)"
-              }}
-            />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-              {signalData.map((entry) => (
-                <Cell fill={entry.color} key={entry.name} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="relative h-64 w-full pt-4 flex flex-col justify-end">
+        {/* Y-axis grid lines */}
+        <div className="absolute inset-x-0 top-6 bottom-10 flex flex-col justify-between pointer-events-none opacity-20">
+          <div className="border-b border-dashed border-slate-500 w-full" />
+          <div className="border-b border-dashed border-slate-500 w-full" />
+          <div className="border-b border-dashed border-slate-500 w-full" />
+          <div className="border-b border-slate-700 w-full" />
+        </div>
+
+        {/* Bars Container */}
+        <div className="relative z-10 flex h-48 items-end justify-around gap-4 px-6 pb-2">
+          {signalData.map((item, idx) => {
+            const heightPercent = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+            const isHovered = hoveredIdx === idx;
+
+            return (
+              <div
+                key={item.name}
+                onMouseEnter={() => setHoveredIdx(idx)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                className="group relative flex flex-1 flex-col items-center h-full justify-end cursor-pointer max-w-[90px]"
+              >
+                {/* Floating Tooltip */}
+                {isHovered && (
+                  <div className="absolute -top-10 z-30 rounded-xl border border-cyan-500/40 bg-[#0b1526]/95 px-3 py-1.5 text-center shadow-xl shadow-black/60 backdrop-blur-md">
+                    <span className="block text-[10px] text-slate-400">{item.name}</span>
+                    <span className="block text-xs font-black text-white font-mono">{item.value} scan{item.value !== 1 ? "s" : ""}</span>
+                  </div>
+                )}
+
+                {/* Value Label above Bar */}
+                <span className="mb-2 text-xs font-bold font-mono text-slate-300 transition-transform group-hover:scale-110">
+                  {item.value}
+                </span>
+
+                {/* Animated Glowing Bar */}
+                <div className="relative w-full rounded-t-xl overflow-hidden bg-slate-800/40 h-full flex items-end">
+                  <div
+                    className="w-full rounded-t-xl transition-all duration-500 ease-out"
+                    style={{
+                      height: `${Math.max(heightPercent, 6)}%`,
+                      backgroundColor: item.color,
+                      boxShadow: isHovered ? `0 0 20px ${item.color}88` : `0 0 10px ${item.color}33`,
+                    }}
+                  />
+                </div>
+
+                {/* Category Name Label below Bar */}
+                <span className="mt-3 text-xs font-bold text-slate-400 truncate max-w-full group-hover:text-cyan-300 transition-colors">
+                  {item.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
