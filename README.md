@@ -1,6 +1,6 @@
 # Network Security Phishing Detection
 
-Network Security Phishing Detection is a machine learning web application that analyzes website URLs and CSV feature datasets to predict whether a target is legitimate or phishing. The project includes a FastAPI backend, MongoDB storage, MLflow/DagsHub experiment tracking, model comparison, Gemini-powered result summaries, and a modern React dashboard.
+Network Security Phishing Detection is a machine learning web application that analyzes website URLs and CSV feature datasets to predict whether a target is legitimate or phishing. The project includes a FastAPI backend, MongoDB Atlas storage, MLflow/DagsHub experiment tracking, model comparison, Gemini-powered result explanations, and a modern React dashboard.
 
 ## 🌐 Live Demo
 
@@ -35,7 +35,7 @@ Network Security Phishing Detection is a machine learning web application that a
   - Logistic Regression
   - Decision Tree
 - Saves the best model and exposes model comparison results in the UI.
-- Uses Gemini API to generate a short human-readable explanation for URL predictions.
+- Uses the Gemini API to generate a short human-readable explanation for URL predictions from Tree SHAP evidence.
 
 ## Tech Stack
 
@@ -109,10 +109,12 @@ pip install xgboost
 Create a `.env` file in the project root.
 
 ```env
-MONGODB_URL_KEY=mongodb://localhost:27017
-MONGO_DB_URL=mongodb://localhost:27017
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3.5-flash
+MONGODB_URL_KEY=mongodb+srv://username:password@cluster-url/...
+GEMINI_API_KEY=your_google_ai_studio_key_here
+# Current Gemini free-tier Flash model. You may override this with another model
+# available to your Google AI Studio project.
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_TIMEOUT_SECONDS=10
 DAGSHUB_REPO_OWNER=Sahilpatil009
 DAGSHUB_REPO_NAME=network-security-edi
 URL_PREDICTION_COLLECTION_NAME=url_prediction_history
@@ -121,11 +123,10 @@ AUTH_SESSION_COLLECTION_NAME=user_sessions
 AUTH_SESSION_DAYS=7
 ```
 
-For MongoDB Atlas, replace both Mongo URLs with your Atlas connection string:
+For MongoDB Atlas, use your Atlas connection string:
 
 ```env
 MONGODB_URL_KEY=mongodb+srv://username:password@cluster-url/...
-MONGO_DB_URL=mongodb+srv://username:password@cluster-url/...
 ```
 
 Do not commit `.env`. It is ignored by Git.
@@ -319,5 +320,5 @@ The FastAPI backend is deployed on Render using Docker.
 
 - API routes under `/api/*` require login where user data or model dashboard data is involved.
 - `.env` must be configured before running the backend.
-- The Gemini summary is optional. If no key is configured, the backend uses a local fallback summary.
+- The Gemini explanation is optional. If no key is configured, the backend uses a labelled local fallback summary.
 - Use safe demo URLs for presentations. Do not open real malicious phishing links.

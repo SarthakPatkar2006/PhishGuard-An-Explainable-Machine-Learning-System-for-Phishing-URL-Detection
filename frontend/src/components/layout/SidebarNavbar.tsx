@@ -17,29 +17,34 @@ import {
 import { useState } from "react";
 import { Button } from "../ui/button";
 import type { AuthUser } from "../../lib/types";
+import sidebarShieldImg from "../../assets/sidebar-shield.png";
 
 interface SidebarNavbarProps {
   onLogout: () => void | Promise<void>;
   user: AuthUser | null;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 const navItems = [
   { label: "Home", to: "/", icon: Home },
-  { label: "Analyze URL", to: "/analyze", icon: Radar },
+  { label: "Analyze", to: "/analyze", icon: Radar },
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-  { label: "Scan History", to: "/history", icon: History },
-  { label: "AI Models", to: "/models", icon: Cpu },
-  { label: "About System", to: "/about", icon: Info },
+  { label: "History", to: "/history", icon: History },
+  { label: "Models", to: "/models", icon: Cpu },
+  { label: "About", to: "/about", icon: Info },
 ];
 
-function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function SidebarNavbar({ onLogout, user, isExpanded: propIsExpanded, onToggleExpanded }: SidebarNavbarProps) {
+  const [internalExpanded, setInternalExpanded] = useState(true);
+  const isExpanded = propIsExpanded !== undefined ? propIsExpanded : internalExpanded;
+  const toggleExpanded = onToggleExpanded || (() => setInternalExpanded(!internalExpanded));
   const [mobileOpen, setMobileOpen] = useState(false);
   const displayName = user?.name ? user.name.split(" ")[0] : "Guest";
 
   return (
     <>
-      {/* Mobile Top Header (Small Screens Only) */}
+      {/* Mobile Top Header */}
       <div className="md:hidden sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-[#040811]/90 px-4 py-3 backdrop-blur-md">
         <NavLink to="/" className="flex items-center gap-2 text-sm font-bold text-white">
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-cyan-500/20 text-cyan-400">
@@ -56,7 +61,7 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
         </button>
       </div>
 
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop */}
       {mobileOpen && (
         <div 
           className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
@@ -64,32 +69,29 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
         />
       )}
 
-      {/* Main Left Sidebar Panel (Collapsible on Desktop, Slide-over on Mobile) */}
+      {/* Main Left Sidebar Panel */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col border-r border-white/10 bg-[#050b14]/95 backdrop-blur-xl transition-all duration-300 ease-in-out shadow-2xl ${
-          // Mobile state:
+        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col border-r border-cyan-500/20 bg-[#040813]/95 backdrop-blur-2xl transition-all duration-300 ease-in-out shadow-2xl ${
           mobileOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0"
         } ${
-          // Desktop expanded vs collapsed:
           isExpanded ? "md:w-64" : "md:w-20"
         }`}
       >
-        {/* Sidebar Header & Brand */}
+        {/* Brand Header */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
           <NavLink to="/" className="flex items-center gap-3 overflow-hidden" onClick={() => setMobileOpen(false)}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-500/40 bg-cyan-500/15 shadow-[0_0_15px_rgba(6,182,212,0.35)]">
               <ShieldCheck className="h-5 w-5 text-cyan-400" />
             </span>
             <div className={`transition-opacity duration-200 ${isExpanded || mobileOpen ? "opacity-100" : "md:opacity-0 md:w-0"}`}>
-              <span className="block text-sm font-bold tracking-tight text-white whitespace-nowrap">Network Security</span>
-              <span className="block text-[10px] text-cyan-400 font-mono tracking-wider uppercase">AI Phishing Guard</span>
+              <span className="block text-sm font-black tracking-tight text-white whitespace-nowrap">Network Security</span>
+              <span className="block text-[10px] text-cyan-400 font-mono tracking-wider uppercase font-semibold">AI Phishing Guard</span>
             </div>
           </NavLink>
 
-          {/* Desktop Toggle Expand / Collapse Button */}
           <button
             type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={toggleExpanded}
             className="hidden md:grid h-7 w-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition cursor-pointer"
             title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
           >
@@ -97,7 +99,7 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
           </button>
         </div>
 
-        {/* Navigation Links */}
+        {/* Navigation Items */}
         <nav className="flex-1 space-y-1.5 p-3 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -108,10 +110,10 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
                 end={item.to === "/"}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `group relative flex items-center gap-3.5 rounded-xl px-3 py-3 text-xs font-semibold transition-all ${
+                  `group relative flex items-center gap-3.5 rounded-xl px-3 py-3 text-xs font-bold transition-all ${
                     isActive
-                      ? "border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-teal-500/10 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                      : "text-slate-400 hover:border-white/10 hover:bg-white/5 hover:text-slate-200"
+                      ? "border border-cyan-500/50 bg-gradient-to-r from-cyan-500/25 to-teal-500/10 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                      : "text-slate-400 hover:border-white/10 hover:bg-white/5 hover:text-slate-100"
                   }`
                 }
               >
@@ -120,9 +122,8 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
                   {item.label}
                 </span>
 
-                {/* Tooltip on collapsed state */}
                 {!isExpanded && (
-                  <span className="md:group-hover:flex hidden absolute left-full ml-3.5 z-50 whitespace-nowrap rounded-lg border border-cyan-500/30 bg-[#070e1b] px-3 py-1.5 text-xs font-semibold text-cyan-200 shadow-xl shadow-black/80">
+                  <span className="md:group-hover:flex hidden absolute left-full ml-3.5 z-50 whitespace-nowrap rounded-lg border border-cyan-500/30 bg-[#070e1b] px-3 py-1.5 text-xs font-bold text-cyan-200 shadow-xl shadow-black/80">
                     {item.label}
                   </span>
                 )}
@@ -131,8 +132,34 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
           })}
         </nav>
 
-        {/* User Account & Logout Footer in Sidebar */}
-        <div className="border-t border-white/10 p-3 bg-[#03060c]/60">
+        {/* User's Exact Shield Card in Sidebar (Visible when expanded) */}
+        {(isExpanded || mobileOpen) && (
+          <div className="p-3">
+            <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/40 to-[#061122]/90 p-3.5 text-center shadow-lg shadow-cyan-950/40 backdrop-blur-md">
+              <img 
+                src={sidebarShieldImg} 
+                alt="Stay Safe Online Logo" 
+                className="mx-auto h-24 w-auto object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+              />
+              <h4 className="mt-2 text-xs font-black text-white tracking-wide">Stay Safe Online</h4>
+              <p className="mt-1 text-[10px] text-slate-300 font-medium leading-tight">
+                AI-powered phishing detection for a safer web.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Compact logo on collapsed view */}
+        {!isExpanded && !mobileOpen && (
+          <div className="p-2 pb-3 flex justify-center">
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/30 bg-cyan-950/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+              <img src={sidebarShieldImg} alt="Shield Icon" className="h-7 w-7 object-contain" />
+            </div>
+          </div>
+        )}
+
+        {/* User Account / Auth Section */}
+        <div className="border-t border-white/10 p-3 bg-[#02050b]/80">
           {user ? (
             <div className={`flex items-center gap-3 p-2 rounded-xl border border-white/10 bg-white/[0.03] ${isExpanded || mobileOpen ? "justify-between" : "justify-center"}`}>
               <div className="flex items-center gap-2.5 overflow-hidden">
@@ -142,7 +169,7 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
                 {(isExpanded || mobileOpen) && (
                   <div className="overflow-hidden">
                     <span className="block text-xs font-bold text-white truncate">{displayName}</span>
-                    <span className="block text-[10px] text-slate-400">Online</span>
+                    <span className="block text-[10px] text-emerald-400 font-semibold">● Online</span>
                   </div>
                 )}
               </div>
@@ -160,14 +187,14 @@ function SidebarNavbar({ onLogout, user }: SidebarNavbarProps) {
           ) : (
             <Button
               asChild
-              className={`w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.2)] ${
+              className={`w-full rounded-xl border border-cyan-500/30 bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25 font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)] ${
                 !isExpanded && "md:px-2 md:justify-center"
               }`}
               size="sm"
             >
               <NavLink to="/auth" onClick={() => setMobileOpen(false)}>
                 <UserRound className="h-4 w-4 shrink-0" />
-                {(isExpanded || mobileOpen) && <span className="ml-2 text-xs font-semibold">Sign in</span>}
+                {(isExpanded || mobileOpen) && <span className="ml-2 text-xs font-bold">Sign in</span>}
               </NavLink>
             </Button>
           )}

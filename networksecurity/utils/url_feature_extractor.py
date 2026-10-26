@@ -1,6 +1,7 @@
 import ipaddress
 import re
 import socket
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
@@ -188,7 +189,13 @@ def extract_url_features(raw_url: str) -> Tuple[pd.DataFrame, Dict[str, int], Di
     url, parsed = normalize_url(raw_url)
     hostname = parsed.hostname or ""
     host_lower = hostname.lower()
-    final_url, html = fetch_html(url)
+    # DNS resolution and page retrieval are independent network operations. Run
+    # them together so URL feature extraction waits for the slower one, not both.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        page_future = executor.submit(fetch_html, url)
+        dns_future = executor.submit(dns_record_status, hostname)
+        final_url, html = page_future.result()
+        dns_status = dns_future.result()
     final_host = urlparse(final_url).hostname or hostname
 
     parser = UrlHtmlSignals()
@@ -196,7 +203,6 @@ def extract_url_features(raw_url: str) -> Tuple[pd.DataFrame, Dict[str, int], Di
         parser.feed(html)
 
     dot_count = host_lower.replace("www.", "", 1).count(".")
-    dns_status = dns_record_status(hostname)
     redirect_count = 1 if final_url.rstrip("/") != url.rstrip("/") else 0
     path_after_scheme = url.split("://", 1)[-1]
     extra_double_slash = "//" in path_after_scheme

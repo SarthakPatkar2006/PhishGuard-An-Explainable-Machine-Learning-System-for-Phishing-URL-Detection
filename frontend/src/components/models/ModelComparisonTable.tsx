@@ -40,7 +40,7 @@ function ModelComparisonTable({ report }: { report: ModelComparisonReport }) {
                 <th className="px-4 py-3">Best Params</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-slate-900">
               {report.models.map((model) => (
                 <ModelRow key={model.modelName} model={model} />
               ))}
