@@ -18,7 +18,7 @@
   <strong>High-Throughput URL Threat Classification &bull; Mathematical TreeSHAP Attribution &bull; Google Gemini LLM Explanations &bull; Real-Time Statistical Drift Monitoring &bull; Automated Closed-Loop DVC Retraining</strong>
 </p>
 
-[🌐 Live Web Demo](https://frontend-eight-kappa-99.vercel.app) &bull; [📑 Complete Interview Master Guide (PDF)](docs/interview_prep/PhishGuard_MLOps_Interview_Master_Guide.pdf) &bull; [📊 Grafana Dashboard](http://localhost:3000) &bull; [📈 Prometheus UI](http://localhost:9090)
+[📊 Grafana Dashboard](http://localhost:3000) &bull; [📈 Prometheus UI](http://localhost:9090) &bull; [📑 API Documentation](http://localhost:8000/docs)
 
 </div>
 
@@ -41,7 +41,7 @@
 PhishGuard implements a **Level-2 Production MLOps Lifecycle** connecting data versioning, model training tournaments, decoupled deployment, and live telemetry into a closed loop:
 
 <div align="center">
-  <img src="docs/interview_prep/mindmap_system_architecture.png" alt="PhishGuard System Architecture Mindmap" width="950">
+  <img src="docs/diagrams/mindmap_system_architecture.png" alt="PhishGuard System Architecture Mindmap" width="950">
 </div>
 
 ---
@@ -98,7 +98,7 @@ PhishGuard implements a **Level-2 Production MLOps Lifecycle** connecting data v
 Traditional ML security detectors output raw probability scores that human analysts cannot verify. PhishGuard couples exact game-theoretic math with generative AI:
 
 <div align="center">
-  <img src="docs/interview_prep/mindmap_xai_pipeline.png" alt="Explainable AI Pipeline Mindmap" width="950">
+  <img src="docs/diagrams/mindmap_xai_pipeline.png" alt="Explainable AI Pipeline Mindmap" width="950">
 </div>
 
 1. **Tier 1 (TreeSHAP):** Calculates exact polynomial-time Shapley values directly from the Random Forest's 100 decision trees:
@@ -112,7 +112,7 @@ Traditional ML security detectors output raw probability scores that human analy
 In cybersecurity, attackers frequently update domain structures (covariate shift). PhishGuard avoids silent model degradation via automated statistical monitoring:
 
 <div align="center">
-  <img src="docs/interview_prep/mindmap_drift_monitoring.png" alt="Statistical Drift Monitoring Mindmap" width="950">
+  <img src="docs/diagrams/mindmap_drift_monitoring.png" alt="Statistical Drift Monitoring Mindmap" width="950">
 </div>
 
 * **Baseline Anchor:** 11,055 verified training records (`phisingData.csv`) tracked via DVC.
@@ -132,7 +132,7 @@ In cybersecurity, attackers frequently update domain structures (covariate shift
 PhishGuard extracts 30 heuristic signals across 4 distinct threat categories:
 
 <div align="center">
-  <img src="docs/interview_prep/mindmap_feature_taxonomy.png" alt="30 URL Features Taxonomy" width="950">
+  <img src="docs/diagrams/mindmap_feature_taxonomy.png" alt="30 URL Features Taxonomy" width="950">
 </div>
 
 | Category | Extracted Signals |
@@ -149,10 +149,7 @@ PhishGuard extracts 30 heuristic signals across 4 distinct threat categories:
 ```text
 ├── .github/workflows/          # GitHub Actions CI/CD workflows (Lint, Test, Docker)
 ├── data_schema/                # Data schema definitions & column types
-├── docs/interview_prep/        # Master Interview Prep PDF, HTML & Mindmap diagrams
-│   ├── PhishGuard_MLOps_Interview_Master_Guide.pdf
-│   ├── PhishGuard_Interview_Master_Guide.html
-│   ├── PHISHGUARD_MLOPS_INTERVIEW_PREP.md
+├── docs/diagrams/              # System architecture & feature taxonomy diagrams
 │   ├── mindmap_system_architecture.png
 │   ├── mindmap_feature_taxonomy.png
 │   ├── mindmap_drift_monitoring.png
@@ -271,17 +268,6 @@ All metrics, parameters, and confusion matrix plots are automatically synced to 
 | **Suspicious IP Evasion** | `http://192.168.1.10/login` | **Phishing** (Direct IP, unverified domain) |
 | **Hyphenated Phish** | `http://paypal-security-verification-login.com` | **Phishing** (Prefix_Suffix hyphen, zero traffic) |
 | **Excessive Subdomain** | `http://security.alert.verify-user.bank-update.com` | **Phishing** (having_Sub_Domain $\ge 3$) |
-
----
-
-## 🎓 Master Interview Preparation Guide
-
-For thesis defense, viva presentations, or technical ML/MLOps interviews, refer to our comprehensive guide:
-* 📄 [**PhishGuard MLOps Interview Master Guide (PDF)**](docs/interview_prep/PhishGuard_MLOps_Interview_Master_Guide.pdf) *(1.9 MB printable document)*
-* 📖 [**Interactive HTML Guide**](docs/interview_prep/PhishGuard_Interview_Master_Guide.html)
-* 📝 [**Markdown Reference Guide**](docs/interview_prep/PHISHGUARD_MLOPS_INTERVIEW_PREP.md)
-
-*Contains **35+ in-depth technical questions and answers** across ML Theory, TreeSHAP Game Theory, MLOps Architecture, System Design for 50k RPS, and Behavioral scenarios.*
 
 ---
 
