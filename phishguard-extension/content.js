@@ -18,12 +18,20 @@
   // Prevent duplicate popups
   if (document.getElementById("phishguard-security-popup")) return;
 
+  console.log("[PhishGuard] Injected and scanning:", currentUrl);
+
   function initSafetyCheck() {
-    // Send check message to background service worker (bypasses webpage Mixed-Content and CSP restrictions)
     chrome.runtime.sendMessage({ action: "CHECK_URL", url: currentUrl }, (response) => {
-      if (chrome.runtime.lastError || !response || !response.success) {
+      if (chrome.runtime.lastError) {
+        console.warn("[PhishGuard] Extension communication error:", chrome.runtime.lastError.message);
         return;
       }
+      if (!response || !response.success) {
+        console.warn("[PhishGuard] Backend check returned no success:", response);
+        return;
+      }
+
+      console.log("[PhishGuard] Scan result received:", response);
 
       if (response.isLegitimate) {
         showSafePopup(response.latencyMs, response.summary);
@@ -31,6 +39,16 @@
         showPhishingPopup(response.latencyMs, response.summary);
       }
     });
+  }
+
+  function mountElement(elem) {
+    if (document.body) {
+      document.body.appendChild(elem);
+    } else {
+      document.addEventListener("DOMContentLoaded", () => {
+        document.body.appendChild(elem);
+      });
+    }
   }
 
   function showSafePopup(latencyMs, explanation) {
@@ -108,7 +126,7 @@
       </div>
     `;
 
-    document.body.appendChild(popup);
+    mountElement(popup);
 
     const closeBtn = popup.querySelector("#phishguard-close-btn");
     if (closeBtn) {
@@ -165,12 +183,13 @@
       <p style="font-size: 12px; color: #fca5a5; margin: 0 0 8px 0;">PhishGuard ML model flagged high-risk deception signals.</p>
     `;
 
-    document.body.appendChild(popup);
+    mountElement(popup);
   }
 
-  if (document.readyState === "complete") {
-    initSafetyCheck();
+  // Start immediately or when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initSafetyCheck);
   } else {
-    window.addEventListener("load", initSafetyCheck);
+    initSafetyCheck();
   }
 })();
