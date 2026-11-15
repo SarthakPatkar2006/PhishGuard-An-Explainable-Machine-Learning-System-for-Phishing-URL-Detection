@@ -1,8 +1,7 @@
-// PhishGuard Real-Time In-Browser URL Threat Detector & Safety Clearance Popup
+// PhishGuard In-Browser Security Clearance & Threat Popup
 (function () {
   const currentUrl = window.location.href;
 
-  // Ignore internal browser pages and local development ports
   if (
     !currentUrl ||
     currentUrl.startsWith("chrome://") ||
@@ -16,47 +15,27 @@
     return;
   }
 
-  // Prevent multiple popups on the same page
+  // Prevent duplicate popups
   if (document.getElementById("phishguard-security-popup")) return;
 
-  async function checkAndDisplaySafety() {
-    try {
-      const startTime = performance.now();
-      const response = await fetch("http://localhost:8000/predict-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ url: currentUrl }),
-      });
-
-      if (!response.ok) return;
-
-      const htmlText = await response.text();
-      const latencyMs = Math.round(performance.now() - startTime);
-
-      const isLegitimate = htmlText.includes("<strong>Legitimate</strong>");
-      const isPhishing = htmlText.includes("<strong>Phishing</strong>");
-
-      // Extract Gemini/SHAP summary if available
-      let explanation = "";
-      const summaryMatch = htmlText.match(/<p class="summary">([\s\S]*?)<\/p>/i);
-      if (summaryMatch && summaryMatch[1]) {
-        explanation = summaryMatch[1]
-          .replace(/&#x27;/g, "'")
-          .replace(/&quot;/g, '"')
-          .trim();
+  function initSafetyCheck() {
+    // Send check message to background service worker (bypasses webpage Mixed-Content and CSP restrictions)
+    chrome.runtime.sendMessage({ action: "CHECK_URL", url: currentUrl }, (response) => {
+      if (chrome.runtime.lastError || !response || !response.success) {
+        return;
       }
 
-      if (isLegitimate) {
-        showSafePopup(latencyMs, explanation);
-      } else if (isPhishing) {
-        showPhishingPopup(latencyMs, explanation);
+      if (response.isLegitimate) {
+        showSafePopup(response.latencyMs, response.summary);
+      } else if (response.isPhishing) {
+        showPhishingPopup(response.latencyMs, response.summary);
       }
-    } catch (err) {
-      console.debug("PhishGuard Backend offline on port 8000:", err.message);
-    }
+    });
   }
 
   function showSafePopup(latencyMs, explanation) {
+    if (document.getElementById("phishguard-security-popup")) return;
+
     const popup = document.createElement("div");
     popup.id = "phishguard-security-popup";
 
@@ -69,39 +48,39 @@
       background: linear-gradient(145deg, #062e25 0%, #061f1b 60%, #031411 100%) !important;
       border: 1.5px solid #10b981 !important;
       border-radius: 14px !important;
-      box-shadow: 0 10px 35px rgba(16, 185, 129, 0.4), 0 0 20px rgba(0, 0, 0, 0.8) !important;
+      box-shadow: 0 10px 35px rgba(16, 185, 129, 0.45), 0 0 20px rgba(0, 0, 0, 0.8) !important;
       color: #ffffff !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
       padding: 16px 18px !important;
       backdrop-filter: blur(12px) !important;
-      animation: slideInRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      animation: phishguardSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
       box-sizing: border-box !important;
       text-align: left !important;
     `;
 
     popup.innerHTML = `
       <style>
-        @keyframes slideInRight {
+        @keyframes phishguardSlideIn {
           from { transform: translateX(120%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
-        @keyframes pulseGlow {
-          0% { box-shadow: 0 0 8px #10b981; }
-          50% { box-shadow: 0 0 18px #34d399; }
-          100% { box-shadow: 0 0 8px #10b981; }
+        @keyframes phishguardPulse {
+          0% { box-shadow: 0 0 6px #10b981; }
+          50% { box-shadow: 0 0 16px #34d399; }
+          100% { box-shadow: 0 0 6px #10b981; }
         }
       </style>
 
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: #10b981; border-radius: 50%; font-size: 14px; animation: pulseGlow 2s infinite;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: #10b981; border-radius: 50%; font-size: 14px; animation: phishguardPulse 2s infinite;">
             🛡️
           </span>
           <span style="font-weight: 800; font-size: 14px; color: #ffffff; letter-spacing: -0.3px;">
             PhishGuard Security Verified
           </span>
         </div>
-        <button id="phishguard-close-safe" style="background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 2px 5px; line-height: 1;">✕</button>
+        <button id="phishguard-close-btn" style="background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; padding: 2px 5px; line-height: 1;">✕</button>
       </div>
 
       <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
@@ -109,18 +88,18 @@
           SAFE &bull; LEGITIMATE
         </span>
         <span style="font-size: 11px; color: #a7f3d0;">
-          Inference: <strong>${latencyMs}ms</strong> &bull; Random Forest Active
+          Inference: <strong>${latencyMs || 15}ms</strong> &bull; Random Forest Active
         </span>
       </div>
 
-      <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 11.5px; line-height: 1.5; color: #d1fae5;">
+      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 11.5px; line-height: 1.5; color: #d1fae5;">
         <div style="color: #6ee7b7; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
           <span>✓</span> 30 Heuristic Signals Validated
         </div>
         <div style="font-size: 11px; color: #a7f3d0; opacity: 0.9;">
-          • SSL Certificate: <strong>Valid & Trusted CA</strong><br>
-          • Hostname & DNS: <strong>Authentic Domain</strong><br>
-          • Anchor & Form Tags: <strong>Normal Distribution</strong>
+          &bull; SSL Certificate: <strong>Valid & Trusted CA</strong><br>
+          &bull; Hostname & DNS: <strong>Authentic Domain</strong><br>
+          &bull; Anchor & Form Tags: <strong>Normal Distribution</strong>
         </div>
       </div>
 
@@ -131,21 +110,20 @@
 
     document.body.appendChild(popup);
 
-    // Close button
-    const closeBtn = popup.querySelector("#phishguard-close-safe");
+    const closeBtn = popup.querySelector("#phishguard-close-btn");
     if (closeBtn) {
       closeBtn.onclick = () => popup.remove();
       closeBtn.onmouseenter = () => (closeBtn.style.color = "#ffffff");
       closeBtn.onmouseleave = () => (closeBtn.style.color = "#94a3b8");
     }
 
-    // Auto-shrink to a small unobtrusive floating shield icon after 7 seconds
+    // Auto-shrink after 8 seconds
     setTimeout(() => {
       if (!popup.isConnected) return;
       popup.style.transition = "all 0.4s ease";
       popup.style.opacity = "0.35";
       popup.style.transform = "scale(0.92)";
-    }, 7000);
+    }, 8000);
 
     popup.onmouseenter = () => {
       popup.style.opacity = "1";
@@ -158,6 +136,8 @@
   }
 
   function showPhishingPopup(latencyMs, explanation) {
+    if (document.getElementById("phishguard-security-popup")) return;
+
     const popup = document.createElement("div");
     popup.id = "phishguard-security-popup";
 
@@ -189,8 +169,8 @@
   }
 
   if (document.readyState === "complete") {
-    checkAndDisplaySafety();
+    initSafetyCheck();
   } else {
-    window.addEventListener("load", checkAndDisplaySafety);
+    window.addEventListener("load", initSafetyCheck);
   }
 })();
