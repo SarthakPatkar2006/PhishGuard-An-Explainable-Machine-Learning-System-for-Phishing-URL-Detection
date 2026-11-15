@@ -26,12 +26,16 @@
   // Top Verified Global Domains (Fast-Path for instant sub-30ms green popup)
   const TOP_SAFE_DOMAINS = [
     "google.com", "www.google.com",
+    "whatsapp.com", "web.whatsapp.com",
     "github.com", "www.github.com",
     "wikipedia.org", "en.wikipedia.org",
     "youtube.com", "www.youtube.com",
     "microsoft.com", "www.microsoft.com",
     "apple.com", "www.apple.com",
     "amazon.com", "www.amazon.com",
+    "facebook.com", "www.facebook.com",
+    "instagram.com", "www.instagram.com",
+    "twitter.com", "x.com",
     "stackoverflow.com", "www.stackoverflow.com",
     "linkedin.com", "www.linkedin.com",
     "cloudflare.com", "www.cloudflare.com"

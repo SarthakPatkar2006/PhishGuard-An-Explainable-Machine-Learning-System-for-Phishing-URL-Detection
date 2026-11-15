@@ -67,6 +67,20 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   }
 
   try {
+    const urlObj = new URL(targetUrl);
+    const hostname = urlObj.hostname.toLowerCase();
+
+    // Fast-path known authoritative domains
+    if (
+      hostname.endsWith("whatsapp.com") ||
+      hostname.endsWith("google.com") ||
+      hostname.endsWith("github.com") ||
+      hostname.endsWith("wikipedia.org") ||
+      hostname.endsWith("youtube.com")
+    ) {
+      return;
+    }
+
     const isBypassed = await getBypassState(targetUrl);
     if (isBypassed) return;
 
