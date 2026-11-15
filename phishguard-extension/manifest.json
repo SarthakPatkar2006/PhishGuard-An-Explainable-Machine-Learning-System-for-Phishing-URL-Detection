@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PhishGuard Live Threat Shield",
-  "version": "1.1.0",
-  "description": "Real-time AI Pre-Navigation Interceptor: Blocks phishing URLs before the webpage can load.",
+  "version": "1.2.0",
+  "description": "Instant Pre-Flight AI Threat Verification: Blocks interaction until safety clearance is confirmed.",
   "permissions": [
     "webNavigation",
     "storage",
@@ -20,7 +20,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_end"
+      "run_at": "document_start"
     }
   ],
   "action": {
